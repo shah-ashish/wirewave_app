@@ -88,17 +88,12 @@ jobs:
     env:
       CARGO_TERM_COLOR: always
       CARGO_TARGET_DIR: C:\t
-      RUSTC_WRAPPER: sccache
-      SCCACHE_GHA_ENABLED: 'true'
       WIREWAVE_BUILD_CHANNEL: ${{ github.event.inputs.channel || 'dev' }}
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Rust Stable
         uses: dtolnay/rust-toolchain@stable
-
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
@@ -162,6 +157,7 @@ jobs:
           path: release-assets
 
       - name: Generate latest.json Manifest
+        id: manifest
         run: |
           VERSION_NAME=$(jq -r .version_name version.json)
           VERSION_CODE=$(jq -r .version_code version.json)
@@ -170,6 +166,7 @@ jobs:
           AND_UPD_ID=$(jq -r .update_app_ids.android version.json)
           WIN_SHA=$(cat release-assets/desktop.sha256)
           AND_SHA=$(cat release-assets/android.sha256)
+          echo "tag=v${VERSION_NAME}" >> "$GITHUB_OUTPUT"
 
           cat <<EOF > release-assets/latest.json
           {
@@ -193,6 +190,7 @@ jobs:
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.manifest.outputs.tag }}
           make_latest: true
           generate_release_notes: true
           files: |
