@@ -5,12 +5,17 @@ members = [
     "core/identity/rust",
     "core/compatibility/rust",
     "core/updater/rust",
+    "core/crypto/rust",
+    "core/transport/rust",
+    "core/discovery/rust",
+    "core/session/rust",
     "features/settings/rust",
+    "features/connection/rust",
     "apps/desktop",
 ]
 
 [workspace.package]
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 authors = ["WireWave Team"]
 license = "MIT"
@@ -20,6 +25,7 @@ gpui = "0.2.2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10"
+hmac = "0.12"
 hex = "0.4"
 uuid = { version = "1.11", features = ["v4"] }
 thiserror = "2.0"
@@ -29,13 +35,31 @@ reqwest = { version = "0.12", default-features = false, features = ["blocking", 
 open = "5.3"
 directories = "5.0"
 hostname = "0.4"
-windows = { version = "0.58", features = ["Win32_Foundation", "Win32_System_SystemInformation", "Win32_System_Registry"] }
+tokio = { version = "1.41", features = ["net", "rt-multi-thread", "sync", "time", "io-util", "macros"] }
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+x25519-dalek = { version = "2.0", features = ["static_secrets"] }
+chacha20poly1305 = "0.10"
+rand_core = { version = "0.6", features = ["getrandom"] }
+zeroize = { version = "1.8", features = ["derive"] }
+windows = { version = "0.58", features = [
+    "Win32_Devices_Bluetooth",
+    "Win32_Foundation",
+    "Win32_Networking_WinSock",
+    "Win32_System_Com",
+    "Win32_System_Registry",
+    "Win32_System_SystemInformation",
+] }
 
 wirewave-core-config = { path = "core/config/rust" }
 wirewave-core-identity = { path = "core/identity/rust" }
 wirewave-core-compatibility = { path = "core/compatibility/rust" }
 wirewave-core-updater = { path = "core/updater/rust" }
+wirewave-core-crypto = { path = "core/crypto/rust" }
+wirewave-core-transport = { path = "core/transport/rust" }
+wirewave-core-discovery = { path = "core/discovery/rust" }
+wirewave-core-session = { path = "core/session/rust" }
 wirewave-feature-settings = { path = "features/settings/rust" }
+wirewave-feature-connection = { path = "features/connection/rust" }
 
 [profile.release]
 opt-level = 3

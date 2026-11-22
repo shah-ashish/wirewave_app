@@ -1,0 +1,13 @@
+[package]
+name = "wirewave-core-discovery"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+hex = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+wirewave-core-config = { workspace = true }

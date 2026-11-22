@@ -23,6 +23,7 @@ dependencies {
     implementation(project(":core:identity"))
     implementation(project(":core:compatibility"))
     implementation(project(":core:updater"))
+    implementation(project(":core:session"))
 
     implementation(platform("androidx.compose:compose-bom:2024.02.01"))
     implementation("androidx.compose.ui:ui")

@@ -1,26 +1,51 @@
-use crate::shell::{sidebar::render_sidebar, titlebar::render_titlebar};
-use gpui::{div, prelude::*, rgba, Context, Entity, Render, Window};
+use crate::shell::{
+    sidebar::{render_sidebar, HasNavigation, NavTab},
+    titlebar::render_titlebar,
+};
+use gpui::{div, prelude::*, px, rgba, Context, Entity, Render, Window};
 use wirewave_core_config::THEME;
+use wirewave_core_session::{SessionState, SharedSession};
+use wirewave_feature_connection::HomeScreen;
 use wirewave_feature_settings::SettingsScreen;
 
-/// Root desktop shell composing the custom titlebar, left rail, and active feature view.
+/// Root desktop shell composing the titlebar, sidebar navigation, Home, and Settings.
 pub struct AppShell {
+    active_tab: NavTab,
+    session: SharedSession,
+    home: Entity<HomeScreen>,
     settings: Entity<SettingsScreen>,
-    is_online: bool,
 }
 
 impl AppShell {
-    pub fn new(settings: Entity<SettingsScreen>, is_online: bool) -> Self {
+    pub fn new(
+        session: SharedSession,
+        home: Entity<HomeScreen>,
+        settings: Entity<SettingsScreen>,
+    ) -> Self {
         Self {
+            active_tab: NavTab::Home,
+            session,
+            home,
             settings,
-            is_online,
         }
     }
 }
 
+impl HasNavigation for AppShell {
+    fn select_tab(&mut self, tab: NavTab) {
+        self.active_tab = tab;
+    }
+}
+
 impl Render for AppShell {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let c = THEME.colors;
+        let is_connected = matches!(self.session.snapshot().state, SessionState::Connected(_));
+
+        let active_view = match self.active_tab {
+            NavTab::Home => self.home.clone().into_any_element(),
+            NavTab::Settings => self.settings.clone().into_any_element(),
+        };
 
         div()
             .flex()
@@ -34,14 +59,16 @@ impl Render for AppShell {
                     .flex()
                     .flex_row()
                     .flex_1()
-                    .size_full()
-                    .child(render_sidebar(self.is_online))
+                    .min_h(px(0.0))
+                    .w_full()
+                    .child(render_sidebar(self.active_tab, is_connected, cx))
                     .child(
                         div()
                             .flex_1()
+                            .min_h(px(0.0))
                             .h_full()
                             .bg(rgba(c.bg_canvas))
-                            .child(self.settings.clone()),
+                            .child(active_view),
                     ),
             )
     }

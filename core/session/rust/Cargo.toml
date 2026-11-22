@@ -1,0 +1,26 @@
+[package]
+name = "wirewave-core-session"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+directories = { workspace = true }
+hex = { workspace = true }
+hostname = { workspace = true }
+rand_core = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+wirewave-core-config = { workspace = true }
+wirewave-core-crypto = { workspace = true }
+wirewave-core-discovery = { workspace = true }
+wirewave-core-identity = { workspace = true }
+wirewave-core-transport = { workspace = true }
+x25519-dalek = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true }

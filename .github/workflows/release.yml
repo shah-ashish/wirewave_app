@@ -1,4 +1,4 @@
-name: Release Pipeline (v1.0.0+)
+name: Release Pipeline
 
 on:
   push:
@@ -176,7 +176,7 @@ jobs:
             "version_code": ${VERSION_CODE},
             "version_name": "${VERSION_NAME}",
             "tag": "v${VERSION_NAME}",
-            "notes": "WireWave Stage 1 release v${VERSION_NAME}",
+            "notes": "WireWave Stage 2 release v${VERSION_NAME}",
             "desktop": {
               "update_app_id": "${WIN_UPD_ID}",
               "download_url": "${ENDPOINT}/download/windows",

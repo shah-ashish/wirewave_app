@@ -81,7 +81,12 @@ dependencies {
     implementation(project(":core:identity"))
     implementation(project(":core:compatibility"))
     implementation(project(":core:updater"))
+    implementation(project(":core:crypto"))
+    implementation(project(":core:transport"))
+    implementation(project(":core:discovery"))
+    implementation(project(":core:session"))
     implementation(project(":features:settings"))
+    implementation(project(":features:connection"))
 
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.core:core-ktx:1.12.0")

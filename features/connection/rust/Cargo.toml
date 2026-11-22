@@ -1,0 +1,11 @@
+[package]
+name = "wirewave-feature-connection"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gpui = { workspace = true }
+wirewave-core-config = { workspace = true }
+wirewave-core-session = { workspace = true }
+wirewave-core-transport = { workspace = true }

@@ -8,7 +8,7 @@
   !define APP_NAME "WireWave"
 !endif
 !ifndef APP_VERSION
-  !define APP_VERSION "1.0.0"
+  !define APP_VERSION "1.1.0"
 !endif
 !ifndef BIN_PATH
   !define BIN_PATH "..\..\..\target\release\wirewave-desktop.exe"

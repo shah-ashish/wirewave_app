@@ -25,8 +25,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.wirewave.core.config.WireWaveTheme
+import com.wirewave.core.session.ConnectionPrefs
 import com.wirewave.features.settings.about.AboutSection
 import com.wirewave.features.settings.about.AboutSnapshot
+import com.wirewave.features.settings.connection.ConnectionSection
 import com.wirewave.features.settings.update.UpdateController
 import com.wirewave.features.settings.update.UpdateSection
 
@@ -34,6 +36,9 @@ import com.wirewave.features.settings.update.UpdateSection
 fun SettingsScreen(
     aboutSnapshot: AboutSnapshot,
     updateController: UpdateController,
+    connectionPrefs: ConnectionPrefs,
+    onToggleAutoConnect: (Boolean) -> Unit,
+    onToggleKeepAlive: (Boolean) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -72,6 +77,12 @@ fun SettingsScreen(
             phase = phase,
             actionSpec = updateController.primaryActionFor(phase),
             onAction = updateController::dispatch
+        )
+
+        ConnectionSection(
+            prefs = connectionPrefs,
+            onToggleAutoConnect = onToggleAutoConnect,
+            onToggleKeepAlive = onToggleKeepAlive
         )
 
         AboutSection(snapshot = aboutSnapshot)

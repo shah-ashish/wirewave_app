@@ -1,6 +1,8 @@
 pub mod about;
 pub mod compat_popup_ui;
 pub mod components;
+pub mod connection;
+pub mod devices;
 pub mod settings_screen;
 pub mod update;
 

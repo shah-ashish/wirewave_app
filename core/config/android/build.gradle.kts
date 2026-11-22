@@ -18,6 +18,8 @@ val themeJson = readJson("config/theme.json")
 @Suppress("UNCHECKED_CAST")
 val androidCfg = globalConfig["android"] as Map<String, Any>
 @Suppress("UNCHECKED_CAST")
+val connCfg = globalConfig["connection"] as Map<String, Any>
+@Suppress("UNCHECKED_CAST")
 val updateIds = versionJson["update_app_ids"] as Map<String, Any>
 @Suppress("UNCHECKED_CAST")
 val themeColors = themeJson["colors"] as Map<String, String>
@@ -58,6 +60,16 @@ android {
         buildConfigField("int", "MIN_SDK_REQUIRED", "${(androidCfg["min_sdk"] as Number).toInt()}")
         buildConfigField("String", "MIN_OS_LABEL", "\"${androidCfg["min_os_label"]}\"")
         buildConfigField("String", "BUILD_CHANNEL", "\"$buildChannel\"")
+
+        // Stage 2 connection constants from config/wirewave.config.json
+        buildConfigField("int", "CONN_TCP_PORT", "${(connCfg["tcp_port"] as Number).toInt()}")
+        buildConfigField("int", "CONN_UDP_PORT", "${(connCfg["udp_discovery_port"] as Number).toInt()}")
+        buildConfigField("String", "CONN_BT_UUID", "\"${connCfg["bt_service_uuid"]}\"")
+        buildConfigField("String", "CONN_PROTOCOL_DOMAIN", "\"${connCfg["protocol_domain"]}\"")
+        buildConfigField("int", "CONN_OTP_TTL_SECS", "${(connCfg["otp_ttl_secs"] as Number).toInt()}")
+        buildConfigField("int", "CONN_OTP_MAX_ATTEMPTS", "${(connCfg["otp_max_attempts"] as Number).toInt()}")
+        buildConfigField("int", "CONN_HEARTBEAT_INTERVAL_SECS", "${(connCfg["heartbeat_interval_secs"] as Number).toInt()}")
+        buildConfigField("int", "CONN_HEARTBEAT_TIMEOUT_SECS", "${(connCfg["heartbeat_timeout_secs"] as Number).toInt()}")
 
         // Compile-time theme tokens from config/theme.json
         themeColors.forEach { (key, value) ->

@@ -13,6 +13,17 @@ enum class BuildChannel {
     }
 }
 
+object ConnectionConfig {
+    val tcpPort: Int = BuildConfig.CONN_TCP_PORT
+    val udpDiscoveryPort: Int = BuildConfig.CONN_UDP_PORT
+    val btServiceUuid: String = BuildConfig.CONN_BT_UUID
+    val protocolDomain: String = BuildConfig.CONN_PROTOCOL_DOMAIN
+    val otpTtlSecs: Int = BuildConfig.CONN_OTP_TTL_SECS
+    val otpMaxAttempts: Int = BuildConfig.CONN_OTP_MAX_ATTEMPTS
+    val heartbeatIntervalSecs: Int = BuildConfig.CONN_HEARTBEAT_INTERVAL_SECS
+    val heartbeatTimeoutSecs: Int = BuildConfig.CONN_HEARTBEAT_TIMEOUT_SECS
+}
+
 /** Single compile-time authority synced from `config/wirewave.config.json` and `version.json`. */
 object AppConfig {
     val appName: String = BuildConfig.APP_NAME
@@ -25,4 +36,5 @@ object AppConfig {
     val minSdkRequired: Int = BuildConfig.MIN_SDK_REQUIRED
     val minOsLabel: String = BuildConfig.MIN_OS_LABEL
     val buildChannel: BuildChannel = BuildChannel.fromRaw(BuildConfig.BUILD_CHANNEL)
+    val connection = ConnectionConfig
 }

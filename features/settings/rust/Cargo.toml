@@ -11,4 +11,6 @@ tracing = { workspace = true }
 wirewave-core-compatibility = { workspace = true }
 wirewave-core-config = { workspace = true }
 wirewave-core-identity = { workspace = true }
+wirewave-core-session = { workspace = true }
+wirewave-core-transport = { workspace = true }
 wirewave-core-updater = { workspace = true }

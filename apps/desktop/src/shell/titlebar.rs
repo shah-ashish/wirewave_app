@@ -1,9 +1,7 @@
-use gpui::{
-    div, img, prelude::*, px, rgba, Div, FontWeight, WindowControlArea,
-};
+use gpui::{div, img, prelude::*, px, rgba, svg, Div, FontWeight, WindowControlArea};
 use wirewave_core_config::{APP_CONFIG, THEME};
 
-/// Custom dark Windows 11 titlebar matching the Desktop Settings screenshot.
+/// Custom dark Windows 11 titlebar.
 pub fn render_titlebar() -> Div {
     let c = THEME.colors;
     let m = THEME.metrics;
@@ -34,21 +32,24 @@ pub fn render_titlebar() -> Div {
         .h_full()
         .child(window_control_button(
             "win-min",
-            "—",
+            "assets/brand/icons/window-minimize.svg",
+            14.0,
             WindowControlArea::Min,
             false,
             |window| window.minimize_window(),
         ))
         .child(window_control_button(
             "win-max",
-            "□",
+            "assets/brand/icons/window-maximize.svg",
+            13.0,
             WindowControlArea::Max,
             false,
             |window| window.zoom_window(),
         ))
         .child(window_control_button(
             "win-close",
-            "×",
+            "assets/brand/icons/window-close.svg",
+            14.0,
             WindowControlArea::Close,
             true,
             |window| window.remove_window(),
@@ -62,8 +63,6 @@ pub fn render_titlebar() -> Div {
         .w_full()
         .h(px(m.titlebar_height))
         .bg(rgba(c.bg_canvas))
-        .border_b_1()
-        .border_color(rgba(c.border_subtle))
         .child(
             div()
                 .flex_1()
@@ -78,7 +77,8 @@ pub fn render_titlebar() -> Div {
 
 fn window_control_button<F>(
     id: &'static str,
-    glyph: &'static str,
+    icon_path: &'static str,
+    icon_size: f32,
     area: WindowControlArea,
     is_close: bool,
     on_press: F,
@@ -87,23 +87,32 @@ where
     F: Fn(&mut gpui::Window) + 'static,
 {
     let c = THEME.colors;
-    let hover_bg = match is_close {
-        true => c.status_err_fg,
-        false => c.bg_card_hover,
+    let hover_bg = if is_close {
+        0xC42B1CFF
+    } else {
+        c.bg_card_hover
     };
 
     div()
         .id(id)
-        .w(px(44.0))
+        .w(px(46.0))
         .h_full()
         .flex()
         .items_center()
         .justify_center()
         .cursor_pointer()
         .window_control_area(area)
-        .text_size(px(14.0))
         .text_color(rgba(c.text_secondary))
-        .hover(move |s| s.bg(rgba(hover_bg)).text_color(rgba(c.text_primary)))
+        .hover(move |style| {
+            style
+                .bg(rgba(hover_bg))
+                .text_color(rgba(c.text_primary))
+        })
         .on_click(move |_event, window, _cx| on_press(window))
-        .child(glyph)
+        .child(
+            svg()
+                .path(icon_path)
+                .size(px(icon_size))
+                .text_color(rgba(c.text_primary)),
+        )
 }

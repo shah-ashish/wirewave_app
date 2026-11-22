@@ -14,7 +14,10 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 wirewave-core-compatibility = { workspace = true }
 wirewave-core-config = { workspace = true }
+wirewave-core-crypto = { workspace = true }
 wirewave-core-identity = { workspace = true }
+wirewave-core-session = { workspace = true }
+wirewave-feature-connection = { workspace = true }
 wirewave-feature-settings = { workspace = true }
 
 [target.'cfg(windows)'.build-dependencies]

@@ -6,7 +6,27 @@
     "icon_settings_svg": "assets/brand/icons/settings.svg",
     "icon_monitor_svg": "assets/brand/icons/monitor.svg",
     "icon_check_svg": "assets/brand/icons/check.svg",
+    "icon_home_svg": "assets/brand/icons/home.svg",
+    "icon_wifi_svg": "assets/brand/icons/wifi.svg",
+    "icon_bluetooth_svg": "assets/brand/icons/bluetooth.svg",
+    "icon_phone_svg": "assets/brand/icons/phone.svg",
+    "icon_speaker_svg": "assets/brand/icons/speaker.svg",
+    "icon_mic_svg": "assets/brand/icons/mic.svg",
+    "icon_keyboard_svg": "assets/brand/icons/keyboard.svg",
+    "icon_mouse_svg": "assets/brand/icons/mouse.svg",
+    "icon_camera_svg": "assets/brand/icons/camera.svg",
     "icon_android_drawable": "assets/brand/wirewave_mark.png"
+  },
+  "connection": {
+    "tcp_port": 3030,
+    "udp_discovery_port": 3032,
+    "bt_service_uuid": "8f6a2e40-9b1c-4d3e-a712-5c4e9f8a1b20",
+    "protocol_domain": "wirewave:proto:v2",
+    "otp_ttl_secs": 60,
+    "otp_max_attempts": 3,
+    "heartbeat_interval_secs": 3,
+    "heartbeat_timeout_secs": 9,
+    "default_priority": "wifi"
   },
   "desktop": {
     "app_id": "oklum.com.wirewave.desktop",
