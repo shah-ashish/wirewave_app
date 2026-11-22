@@ -20,6 +20,9 @@ wirewave-core-session = { workspace = true }
 wirewave-feature-connection = { workspace = true }
 wirewave-feature-settings = { workspace = true }
 
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true }
+
 [target.'cfg(windows)'.build-dependencies]
 serde = { workspace = true }
 serde_json = { workspace = true }

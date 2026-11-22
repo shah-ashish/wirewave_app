@@ -8,7 +8,7 @@
   !define APP_NAME "WireWave"
 !endif
 !ifndef APP_VERSION
-  !define APP_VERSION "1.1.0"
+  !define APP_VERSION "1.1.1"
 !endif
 !ifndef BIN_PATH
   !define BIN_PATH "..\..\..\target\release\wirewave-desktop.exe"
@@ -45,6 +45,13 @@ Function .onInit
     MessageBox MB_OK|MB_ICONSTOP "${APP_NAME} requires Windows 11 (Build 22000 or newer). Detected build: $0."
     Abort
   ${EndIf}
+
+  ; Gracefully terminate any running instance of WireWave before extracting files.
+  ; This releases the OS file lock on wirewave-desktop.exe so the File instruction
+  ; can overwrite it without an "Error opening file for writing" dialog.
+  nsExec::ExecToLog 'taskkill /F /IM wirewave-desktop.exe'
+  ; Allow a brief moment for the process to fully exit before extraction begins.
+  Sleep 500
 FunctionEnd
 
 Section "Install"

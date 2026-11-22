@@ -15,7 +15,9 @@ import org.json.JSONObject
 import java.io.IOException
 import java.net.DatagramPacket
 import java.net.DatagramSocket
+import java.net.Inet4Address
 import java.net.InetAddress
+import java.net.NetworkInterface
 import java.net.SocketTimeoutException
 
 data class DiscoveredHost(
@@ -48,39 +50,66 @@ class HostScanner(
     private fun scanWifiUdp(): List<DiscoveredHost> {
         val results = mutableListOf<DiscoveredHost>()
         val probe = encodeProbe()
+        val seen = linkedSetOf<String>()
 
-        try {
-            DatagramSocket().use { socket ->
-                socket.broadcast = true
-                socket.soTimeout = 1200
+        // Enumerate every active IPv4 interface and send the probe on each one.
+        // This is essential when the phone itself is a Wi-Fi hotspot: the default
+        // DatagramSocket binds to the mobile-data (cellular) interface and the
+        // broadcast never reaches PCs connected to the hotspot. By iterating all
+        // interfaces we also cover the AP (hotspot) interface and regular Wi-Fi.
+        val interfaces = try {
+            NetworkInterface.getNetworkInterfaces()?.toList() ?: emptyList()
+        } catch (_: IOException) {
+            emptyList()
+        }
 
-                val broadcast = InetAddress.getByName("255.255.255.255")
-                val outPacket = DatagramPacket(probe, probe.size, broadcast, AppConfig.connection.udpDiscoveryPort)
-                socket.send(outPacket)
+        val bindAddresses = interfaces
+            .filter { iface -> iface.isUp && !iface.isLoopback }
+            .flatMap { iface -> iface.interfaceAddresses }
+            .mapNotNull { ifAddr ->
+                val addr = ifAddr.address
+                if (addr is Inet4Address && !addr.isLoopbackAddress) addr else null
+            }
+            .ifEmpty {
+                // Fallback: use the unbound socket (original behaviour).
+                listOf(null)
+            }
 
-                val deadline = System.currentTimeMillis() + 1400L
-                val buf = ByteArray(1024)
-                while (System.currentTimeMillis() < deadline) {
-                    val reply = DatagramPacket(buf, buf.size)
-                    try {
-                        socket.receive(reply)
-                    } catch (_: SocketTimeoutException) {
-                        break
-                    }
-                    val raw = reply.data.copyOf(reply.length)
-                    val announcement = decodeSignedPacket(raw) ?: continue
-                    val parsed = parseAnnouncement(
-                        announcement.payload,
-                        reply.address.hostAddress.orEmpty(),
-                        announcement.publicKeyHex
-                    )
-                    if (parsed != null) {
-                        results.add(parsed)
+        for (bindAddr in bindAddresses) {
+            try {
+                val socket = if (bindAddr != null) DatagramSocket(0, bindAddr) else DatagramSocket()
+                socket.use {
+                    it.broadcast = true
+                    it.soTimeout = 1200
+
+                    val broadcast = InetAddress.getByName("255.255.255.255")
+                    val outPacket = DatagramPacket(probe, probe.size, broadcast, AppConfig.connection.udpDiscoveryPort)
+                    it.send(outPacket)
+
+                    val deadline = System.currentTimeMillis() + 1400L
+                    val buf = ByteArray(1024)
+                    while (System.currentTimeMillis() < deadline) {
+                        val reply = DatagramPacket(buf, buf.size)
+                        try {
+                            it.receive(reply)
+                        } catch (_: SocketTimeoutException) {
+                            break
+                        }
+                        val raw = reply.data.copyOf(reply.length)
+                        val announcement = decodeSignedPacket(raw) ?: continue
+                        val parsed = parseAnnouncement(
+                            announcement.payload,
+                            reply.address.hostAddress.orEmpty(),
+                            announcement.publicKeyHex
+                        ) ?: continue
+                        // Deduplicate: same desktop may reply on multiple interfaces.
+                        val key = "${parsed.desktopId}:${parsed.hostAddress}"
+                        if (seen.add(key)) results.add(parsed)
                     }
                 }
+            } catch (_: IOException) {
+                // This interface failed; continue to the next one.
             }
-        } catch (_: IOException) {
-            // Wi-Fi may be unavailable; Bluetooth scan still proceeds.
         }
         return results
     }

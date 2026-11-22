@@ -17,6 +17,42 @@ use wirewave_core_session::SessionManager;
 use wirewave_feature_connection::HomeScreen;
 use wirewave_feature_settings::SettingsScreen;
 
+/// Acquires a Windows named mutex to enforce a single running instance.
+///
+/// Returns the mutex `HANDLE` which must be kept alive for the process lifetime
+/// (dropping it releases the mutex and allows a new instance to start).
+/// Returns `None` if another instance is already running — the caller must exit.
+#[cfg(windows)]
+fn acquire_single_instance() -> Option<windows::Win32::Foundation::HANDLE> {
+    use windows::core::PCWSTR;
+    use windows::Win32::Foundation::ERROR_ALREADY_EXISTS;
+    use windows::Win32::System::Threading::CreateMutexW;
+
+    let name: Vec<u16> = "Global\\WireWaveDesktopSingleInstance\0"
+        .encode_utf16()
+        .collect();
+
+    // SAFETY: name is a valid null-terminated UTF-16 string; no security attributes needed.
+    let handle = unsafe { CreateMutexW(None, true, PCWSTR(name.as_ptr())) };
+    match handle {
+        Ok(h) => {
+            // If the mutex already existed the OS returns ERROR_ALREADY_EXISTS via GetLastError.
+            let last = unsafe { windows::Win32::Foundation::GetLastError() };
+            if last == ERROR_ALREADY_EXISTS {
+                tracing::warn!("WireWave is already running — refusing to start a second instance.");
+                None
+            } else {
+                Some(h)
+            }
+        }
+        Err(err) => {
+            // Cannot create mutex (unusual). Log and continue — better than a silent blank window.
+            tracing::warn!(%err, "Could not create single-instance mutex; proceeding anyway.");
+            None
+        }
+    }
+}
+
 fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -24,6 +60,22 @@ fn main() {
                 .unwrap_or_else(|_| "info".into()),
         )
         .init();
+
+    // Enforce a single running instance using a Windows named mutex.
+    // If another instance already holds the mutex (ports 3030/3032 are in use),
+    // log and exit cleanly rather than launching a broken second window.
+    #[cfg(windows)]
+    let _single_instance_guard = match acquire_single_instance() {
+        Some(guard) => guard,
+        None => {
+            tracing::error!(
+                "Another WireWave instance is already running. \
+                 Close it before starting a new one (or the installed version \
+                 before running a debug build)."
+            );
+            std::process::exit(1);
+        }
+    };
 
     // Stage 1 background bootstrap (unchanged):
     let compatibility = check_compatibility();
