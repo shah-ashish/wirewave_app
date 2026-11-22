@@ -1,0 +1,15 @@
+[package]
+name = "wirewave-core-updater"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+hex = { workspace = true }
+open = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }
+reqwest = { workspace = true }
+wirewave-core-config = { workspace = true }

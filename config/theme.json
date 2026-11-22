@@ -1,0 +1,42 @@
+{
+  "colors": {
+    "bg_canvas": "#000000",
+    "bg_sidebar": "#0A0A0C",
+    "bg_card": "#161618",
+    "bg_card_hover": "#1E1E21",
+    "bg_nav_active": "#171C26",
+    "border_subtle": "#242428",
+    "divider": "#26262A",
+    "text_primary": "#F5F5F7",
+    "text_secondary": "#8E8E93",
+    "text_section": "#7A7A80",
+    "accent_blue": "#0A84FF",
+    "accent_blue_hover": "#409CFF",
+    "status_ok_bg": "#12341E",
+    "status_ok_fg": "#30D158",
+    "status_err_bg": "#3A1416",
+    "status_err_fg": "#FF453A",
+    "scrim": "#B3000000"
+  },
+  "typography": {
+    "font_title": 16.0,
+    "font_card_title": 16.0,
+    "font_body": 15.0,
+    "font_mono": 14.0,
+    "font_section": 12.0,
+    "font_badge": 13.0
+  },
+  "metrics": {
+    "radius_card": 16.0,
+    "radius_nav": 12.0,
+    "radius_pill": 999.0,
+    "spacing_xs": 6.0,
+    "spacing_sm": 12.0,
+    "spacing_md": 18.0,
+    "spacing_lg": 24.0,
+    "row_height": 54.0,
+    "titlebar_height": 44.0,
+    "sidebar_width": 64.0,
+    "content_max_width": 540.0
+  }
+}

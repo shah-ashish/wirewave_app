@@ -1,0 +1,23 @@
+{
+  "app_name": "WireWave",
+  "assets": {
+    "icon_desktop_ico": "assets/brand/wirewave.ico",
+    "icon_desktop_mark": "assets/brand/wirewave_mark.png",
+    "icon_settings_svg": "assets/brand/icons/settings.svg",
+    "icon_monitor_svg": "assets/brand/icons/monitor.svg",
+    "icon_check_svg": "assets/brand/icons/check.svg",
+    "icon_android_drawable": "assets/brand/wirewave_mark.png"
+  },
+  "desktop": {
+    "app_id": "oklum.com.wirewave.desktop",
+    "min_windows_build": 22000,
+    "min_os_label": "Windows 11 (Build 22000+)",
+    "store_url": "ms-windows-store://pdp/?productid=9WIREWAVE000"
+  },
+  "android": {
+    "app_id": "oklum.com.wirewave.android",
+    "min_sdk": 30,
+    "min_os_label": "Android 11 (API 30+)",
+    "store_url": "https://play.google.com/store/apps/details?id=oklum.com.wirewave.android"
+  }
+}

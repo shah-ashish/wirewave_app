@@ -1,0 +1,81 @@
+package com.wirewave.features.settings
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ChevronLeft
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import com.wirewave.core.config.WireWaveTheme
+import com.wirewave.features.settings.about.AboutSection
+import com.wirewave.features.settings.about.AboutSnapshot
+import com.wirewave.features.settings.update.UpdateController
+import com.wirewave.features.settings.update.UpdateSection
+
+@Composable
+fun SettingsScreen(
+    aboutSnapshot: AboutSnapshot,
+    updateController: UpdateController,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val phase by updateController.phase.collectAsState()
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .background(WireWaveTheme.Colors.bgCanvas)
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = WireWaveTheme.Metrics.spacingMd, vertical = WireWaveTheme.Metrics.spacingSm),
+        verticalArrangement = Arrangement.spacedBy(WireWaveTheme.Metrics.spacingLg)
+    ) {
+        Row(
+            modifier = Modifier
+                .clickable(role = Role.Button, onClick = onBack)
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.ChevronLeft,
+                contentDescription = "Back",
+                tint = WireWaveTheme.Colors.accentBlue,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(2.dp))
+            Text(
+                text = "Back",
+                color = WireWaveTheme.Colors.accentBlue,
+                fontSize = WireWaveTheme.Typography.title
+            )
+        }
+
+        UpdateSection(
+            phase = phase,
+            actionSpec = updateController.primaryActionFor(phase),
+            onAction = updateController::dispatch
+        )
+
+        AboutSection(snapshot = aboutSnapshot)
+    }
+
+    CompatibilityDialog(report = aboutSnapshot.compatibility)
+}

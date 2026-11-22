@@ -1,0 +1,37 @@
+# Rust
+/target/
+**/*.rs.bk
+
+# Android / Gradle
+**/.gradle/
+**/local.properties
+apps/android/keystore/
+**/build/
+*.apk
+*.aab
+*.jks
+*.keystore
+*.p12
+*.pfx
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Logs / generated release artifacts
+*.log
+release-assets/
+WireWave-Setup-*.exe
+WireWave-Android-*.apk
+*.sha256
+latest.json
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml

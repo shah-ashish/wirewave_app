@@ -1,0 +1,44 @@
+[workspace]
+resolver = "2"
+members = [
+    "core/config/rust",
+    "core/identity/rust",
+    "core/compatibility/rust",
+    "core/updater/rust",
+    "features/settings/rust",
+    "apps/desktop",
+]
+
+[workspace.package]
+version = "1.0.0"
+edition = "2024"
+authors = ["WireWave Team"]
+license = "MIT"
+
+[workspace.dependencies]
+gpui = "0.2.2"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+hex = "0.4"
+uuid = { version = "1.11", features = ["v4"] }
+thiserror = "2.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking", "json", "rustls-tls"] }
+open = "5.3"
+directories = "5.0"
+hostname = "0.4"
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_System_SystemInformation", "Win32_System_Registry"] }
+
+wirewave-core-config = { path = "core/config/rust" }
+wirewave-core-identity = { path = "core/identity/rust" }
+wirewave-core-compatibility = { path = "core/compatibility/rust" }
+wirewave-core-updater = { path = "core/updater/rust" }
+wirewave-feature-settings = { path = "features/settings/rust" }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = "symbols"

@@ -1,0 +1,9 @@
+{
+  "version_name": "1.0.0",
+  "version_code": 10000,
+  "update_endpoint": "https://wirewave-updates.ashisg778.workers.dev",
+  "update_app_ids": {
+    "desktop": "ww-upd-win",
+    "android": "ww-upd-and"
+  }
+}
