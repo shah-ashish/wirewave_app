@@ -192,6 +192,7 @@ class SessionController(
         val input = DataInputStream(rawInput)
         val output = DataOutputStream(rawOutput)
         val ephemeral = EphemeralX25519()
+        val isTrusted = store.getTrustedDesktop(host.desktopId) != null
         val hello = JSONObject().apply {
             put("type", "hello")
             put("protocol_domain", AppConfig.connection.protocolDomain)
@@ -200,6 +201,7 @@ class SessionController(
             put("public_key_hex", keypair.publicKeyHex)
             put("ephemeral_x25519_hex", ephemeral.publicKeyHex)
             put("transport", host.transport.wireName)
+            put("require_pairing", !isTrusted)
         }
         FrameCodec.writeFrame(output, hello.toString().toByteArray(Charsets.UTF_8))
 
@@ -243,8 +245,16 @@ class SessionController(
         val shared = ephemeral.deriveSharedSecret(serverEph)
             ?: return failSession("Key exchange failed.")
 
-        val transcript = "$desktopId:${identity.deviceId}:$nonceHex".toByteArray(Charsets.UTF_8)
-        val sig = keypair.sign(transcript).toHex()
+        val exchangeHash = WireWaveCrypto.computeExchangeHash(
+            desktopId = desktopId,
+            deviceId = identity.deviceId,
+            desktopPubkeyHex = desktopPub,
+            devicePubkeyHex = keypair.publicKeyHex,
+            serverX25519Hex = serverEph,
+            clientX25519Hex = ephemeral.publicKeyHex,
+            nonceHex = nonceHex
+        )
+        val sig = keypair.sign(exchangeHash).toHex()
         val reply = JSONObject().apply {
             put("type", "challenge_reply")
             put("signature_hex", sig)
@@ -256,12 +266,12 @@ class SessionController(
             return failSession(mapRejectCode(ready.optString("code")))
         }
         val desktopSig = ready.getString("desktop_signature_hex")
-        if (!WireWaveCrypto.verifyPeerSignature(desktopPub, transcript, desktopSig)) {
+        if (!WireWaveCrypto.verifyPeerSignature(desktopPub, exchangeHash, desktopSig)) {
             return failSession("Desktop authenticity check failed.")
         }
         store.saveTrustedDesktop(TrustedDesktop(desktopId, desktopName, desktopPub))
 
-        val sessionKey = WireWaveCrypto.deriveSessionKey(shared, transcript)
+        val sessionKey = WireWaveCrypto.deriveSessionKey(shared, exchangeHash)
         enterEncryptedLoop(
             desktopId,
             desktopName,
@@ -293,7 +303,15 @@ class SessionController(
         val shared = ephemeral.deriveSharedSecret(serverEph)
             ?: return failSession("Key exchange failed.")
 
-        val transcript = "$desktopId:${identity.deviceId}".toByteArray(Charsets.UTF_8)
+        val exchangeHash = WireWaveCrypto.computeExchangeHash(
+            desktopId = desktopId,
+            deviceId = identity.deviceId,
+            desktopPubkeyHex = desktopPub,
+            devicePubkeyHex = keypair.publicKeyHex,
+            serverX25519Hex = serverEph,
+            clientX25519Hex = ephemeral.publicKeyHex,
+            nonceHex = ""
+        )
         _state.update { ClientSessionState.AwaitingOtp(host) }
 
         repeat(AppConfig.connection.otpMaxAttempts) {
@@ -301,8 +319,8 @@ class SessionController(
             otpInputDeferred = deferred
             val code = deferred.await()
 
-            val proofHex = WireWaveCrypto.computeOtpProof(shared, code, transcript).toHex()
-            val sigHex = keypair.sign(transcript).toHex()
+            val proofHex = WireWaveCrypto.computeOtpProof(shared, code, exchangeHash).toHex()
+            val sigHex = keypair.sign(exchangeHash).toHex()
             val msg = JSONObject().apply {
                 put("type", "otp_proof")
                 put("proof_hex", proofHex)
@@ -314,11 +332,11 @@ class SessionController(
             when (reply.optString("type")) {
                 "session_ready" -> {
                     val desktopSig = reply.getString("desktop_signature_hex")
-                    if (!WireWaveCrypto.verifyPeerSignature(desktopPub, transcript, desktopSig)) {
+                    if (!WireWaveCrypto.verifyPeerSignature(desktopPub, exchangeHash, desktopSig)) {
                         return failSession("Desktop authenticity check failed.")
                     }
                     store.saveTrustedDesktop(TrustedDesktop(desktopId, desktopName, desktopPub))
-                    val sessionKey = WireWaveCrypto.deriveSessionKey(shared, transcript)
+                    val sessionKey = WireWaveCrypto.deriveSessionKey(shared, exchangeHash)
                     enterEncryptedLoop(
                         desktopId,
                         desktopName,

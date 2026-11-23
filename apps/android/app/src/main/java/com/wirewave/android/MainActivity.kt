@@ -146,6 +146,9 @@ private fun WireWaveRoot(
             onForgetDesktop = { id ->
                 container.trustStore.forgetDesktop(id)
                 trustedList = container.trustStore.listTrustedDesktops()
+                if ((sessionState as? ClientSessionState.Connected)?.desktopId == id) {
+                    container.sessionController.disconnectExplicitly()
+                }
             },
             onBack = { showSettings = false }
         )

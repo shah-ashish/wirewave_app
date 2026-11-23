@@ -2,7 +2,7 @@ pub mod cipher;
 pub mod keys;
 pub mod otp;
 
-pub use cipher::{derive_session_key, CipherRole, SessionCipher};
+pub use cipher::{compute_exchange_hash, derive_session_key, CipherRole, SessionCipher};
 pub use keys::{fetch_or_create_keypair, verify_peer_signature, IdentityKeypair};
 pub use otp::{compute_otp_proof, generate_otp, verify_otp_proof};
 

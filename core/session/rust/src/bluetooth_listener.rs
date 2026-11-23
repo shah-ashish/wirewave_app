@@ -110,10 +110,14 @@ pub fn run_rfcomm_listener(
 
         on_ready();
         loop {
-            let client = unsafe { accept(listener, None, None) }
-                .map_err(|err| std::io::Error::new(std::io::ErrorKind::Other, err))?;
+            let client = match unsafe { accept(listener, None, None) } {
+                Ok(c) => c,
+                Err(_) => continue,
+            };
             let stream = unsafe { TcpStream::from_raw_socket(client.0 as _) };
-            stream.set_nonblocking(true)?;
+            if stream.set_nonblocking(true).is_err() {
+                continue;
+            }
             on_stream(stream);
         }
     })();

@@ -7,6 +7,35 @@ use sha2::{Digest, Sha256};
 use wirewave_core_config::APP_CONFIG;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+/// Computes an SSH-style exchange hash H binding all peer identities, ephemeral keys, and nonces.
+pub fn compute_exchange_hash(
+    desktop_id: &str,
+    device_id: &str,
+    desktop_pubkey_hex: &str,
+    device_pubkey_hex: &str,
+    server_x25519_hex: &str,
+    client_x25519_hex: &str,
+    nonce_hex: &str,
+) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(APP_CONFIG.connection.protocol_domain.as_bytes());
+    hasher.update(b":exchange-hash:");
+    hasher.update(desktop_id.as_bytes());
+    hasher.update(b":");
+    hasher.update(device_id.as_bytes());
+    hasher.update(b":");
+    hasher.update(desktop_pubkey_hex.as_bytes());
+    hasher.update(b":");
+    hasher.update(device_pubkey_hex.as_bytes());
+    hasher.update(b":");
+    hasher.update(server_x25519_hex.as_bytes());
+    hasher.update(b":");
+    hasher.update(client_x25519_hex.as_bytes());
+    hasher.update(b":");
+    hasher.update(nonce_hex.as_bytes());
+    hasher.finalize().into()
+}
+
 /// Derives a 32-byte ChaCha20-Poly1305 session key bound to the WireWave protocol domain.
 pub fn derive_session_key(shared_secret: &[u8; 32], transcript: &[u8]) -> [u8; 32] {
     let mut hasher = Sha256::new();
@@ -121,4 +150,12 @@ mod tests {
         assert!(rx.decrypt(&encrypted).is_err(), "replay must be rejected");
     }
 
+    #[test]
+    fn exchange_hash_binds_all_parameters() {
+        let h1 = compute_exchange_hash("pc1", "ph1", "pk_pc", "pk_ph", "e_pc", "e_ph", "n1");
+        let h2 = compute_exchange_hash("pc1", "ph1", "pk_pc", "pk_ph", "e_pc", "e_ph", "n1");
+        let h3 = compute_exchange_hash("pc1", "ph1", "pk_pc", "pk_ph", "e_pc_tampered", "e_ph", "n1");
+        assert_eq!(h1, h2);
+        assert_ne!(h1, h3);
+    }
 }

@@ -17,6 +17,15 @@ class WireWaveCryptoTest {
     }
 
     @Test
+    fun `computeExchangeHash produces deterministic hash and detects tampering`() {
+        val h1 = WireWaveCrypto.computeExchangeHash("pc1", "ph1", "pk_pc", "pk_ph", "e_pc", "e_ph", "n1")
+        val h2 = WireWaveCrypto.computeExchangeHash("pc1", "ph1", "pk_pc", "pk_ph", "e_pc", "e_ph", "n1")
+        val h3 = WireWaveCrypto.computeExchangeHash("pc1", "ph1", "pk_pc", "pk_ph", "e_pc_tampered", "e_ph", "n1")
+        assertArrayEquals(h1, h2)
+        assertFalse(h1.contentEquals(h3))
+    }
+
+    @Test
     fun `session cipher roundtrips and rejects replayed frames`() {
         val key = ByteArray(32) { it.toByte() }
         val tx = SessionCipher(key, CipherRole.DESKTOP)

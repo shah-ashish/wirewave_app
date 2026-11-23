@@ -82,6 +82,8 @@ pub enum ControlMessage {
         public_key_hex: String,
         ephemeral_x25519_hex: String,
         transport: TransportKind,
+        #[serde(default)]
+        require_pairing: bool,
     },
     Challenge {
         desktop_id: String,

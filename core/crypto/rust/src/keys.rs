@@ -16,7 +16,109 @@ const KEYPAIR_FILE_NAME: &str = "keypair.json";
 #[derive(Serialize, Deserialize)]
 struct StoredKeypair {
     schema_version: u32,
+    #[serde(default)]
     secret_hex: String,
+    #[serde(default)]
+    protected_hex: Option<String>,
+}
+
+#[cfg(windows)]
+mod dpapi {
+    #[repr(C)]
+    struct DataBlob {
+        cb_data: u32,
+        pb_data: *mut u8,
+    }
+
+    #[link(name = "crypt32")]
+    unsafe extern "system" {
+        fn CryptProtectData(
+            p_data_in: *const DataBlob,
+            sz_data_descr: *const u16,
+            p_optional_entropy: *const DataBlob,
+            pv_reserved: *mut core::ffi::c_void,
+            p_prompt_struct: *mut core::ffi::c_void,
+            dw_flags: u32,
+            p_data_out: *mut DataBlob,
+        ) -> i32;
+
+        fn CryptUnprotectData(
+            p_data_in: *const DataBlob,
+            ppsz_data_descr: *mut *mut u16,
+            p_optional_entropy: *const DataBlob,
+            pv_reserved: *mut core::ffi::c_void,
+            p_prompt_struct: *mut core::ffi::c_void,
+            dw_flags: u32,
+            p_data_out: *mut DataBlob,
+        ) -> i32;
+    }
+
+    #[link(name = "kernel32")]
+    unsafe extern "system" {
+        fn LocalFree(h_mem: *mut core::ffi::c_void) -> *mut core::ffi::c_void;
+    }
+
+    pub fn protect(plaintext: &[u8]) -> Option<Vec<u8>> {
+        let input = DataBlob {
+            cb_data: plaintext.len() as u32,
+            pb_data: plaintext.as_ptr() as *mut u8,
+        };
+        let mut output = DataBlob {
+            cb_data: 0,
+            pb_data: core::ptr::null_mut(),
+        };
+        const CRYPTPROTECT_UI_FORBIDDEN: u32 = 0x1;
+        let success = unsafe {
+            CryptProtectData(
+                &input,
+                core::ptr::null(),
+                core::ptr::null(),
+                core::ptr::null_mut(),
+                core::ptr::null_mut(),
+                CRYPTPROTECT_UI_FORBIDDEN,
+                &mut output,
+            )
+        };
+        if success != 0 && !output.pb_data.is_null() {
+            let slice = unsafe { std::slice::from_raw_parts(output.pb_data, output.cb_data as usize) };
+            let vec = slice.to_vec();
+            unsafe { LocalFree(output.pb_data as *mut _) };
+            Some(vec)
+        } else {
+            None
+        }
+    }
+
+    pub fn unprotect(ciphertext: &[u8]) -> Option<Vec<u8>> {
+        let input = DataBlob {
+            cb_data: ciphertext.len() as u32,
+            pb_data: ciphertext.as_ptr() as *mut u8,
+        };
+        let mut output = DataBlob {
+            cb_data: 0,
+            pb_data: core::ptr::null_mut(),
+        };
+        const CRYPTPROTECT_UI_FORBIDDEN: u32 = 0x1;
+        let success = unsafe {
+            CryptUnprotectData(
+                &input,
+                core::ptr::null_mut(),
+                core::ptr::null(),
+                core::ptr::null_mut(),
+                core::ptr::null_mut(),
+                CRYPTPROTECT_UI_FORBIDDEN,
+                &mut output,
+            )
+        };
+        if success != 0 && !output.pb_data.is_null() {
+            let slice = unsafe { std::slice::from_raw_parts(output.pb_data, output.cb_data as usize) };
+            let vec = slice.to_vec();
+            unsafe { LocalFree(output.pb_data as *mut _) };
+            Some(vec)
+        } else {
+            None
+        }
+    }
 }
 
 /// Persistent Ed25519 device identity keypair, zeroized from memory on drop.
@@ -93,7 +195,19 @@ pub fn fetch_or_create_keypair_at(path: &Path) -> Result<IdentityKeypair, Crypto
 fn load_keypair(path: &Path) -> Option<IdentityKeypair> {
     let raw = fs::read_to_string(path).ok()?;
     let parsed: StoredKeypair = serde_json::from_str(&raw).ok()?;
-    let bytes: [u8; 32] = hex::decode(parsed.secret_hex).ok()?.try_into().ok()?;
+
+    #[cfg(windows)]
+    if let Some(protected) = &parsed.protected_hex {
+        if let Ok(bytes) = hex::decode(protected) {
+            if let Some(decrypted) = dpapi::unprotect(&bytes) {
+                if let Ok(arr) = decrypted.try_into() {
+                    return Some(IdentityKeypair::from_bytes(arr));
+                }
+            }
+        }
+    }
+
+    let bytes: [u8; 32] = hex::decode(&parsed.secret_hex).ok()?.try_into().ok()?;
     Some(IdentityKeypair::from_bytes(bytes))
 }
 
@@ -102,9 +216,20 @@ fn save_keypair(path: &Path, keypair: &IdentityKeypair) -> Result<(), CryptoErro
         fs::create_dir_all(parent)?;
     }
     let tmp = path.with_extension("json.tmp");
+
+    #[cfg(windows)]
+    let (protected_hex, secret_hex) = match dpapi::protect(&keypair.secret) {
+        Some(protected) => (Some(hex::encode(protected)), String::new()),
+        None => (None, hex::encode(keypair.secret)),
+    };
+
+    #[cfg(not(windows))]
+    let (protected_hex, secret_hex) = (None, hex::encode(keypair.secret));
+
     let stored = StoredKeypair {
         schema_version: 1,
-        secret_hex: hex::encode(keypair.secret),
+        secret_hex,
+        protected_hex,
     };
     fs::write(&tmp, serde_json::to_string_pretty(&stored)?)?;
     fs::rename(&tmp, path)?;
@@ -127,6 +252,14 @@ mod tests {
         let sig = kp1.sign(b"wirewave-challenge");
         assert!(verify_peer_signature(&kp2.public_key_hex(), b"wirewave-challenge", &sig).is_ok());
         assert!(verify_peer_signature(&kp2.public_key_hex(), b"tampered", &sig).is_err());
+
+        #[cfg(windows)]
+        {
+            let raw = fs::read_to_string(&file).expect("read");
+            let parsed: StoredKeypair = serde_json::from_str(&raw).expect("parse");
+            assert!(parsed.secret_hex.is_empty());
+            assert!(parsed.protected_hex.is_some());
+        }
 
         let _ = fs::remove_dir_all(dir);
     }

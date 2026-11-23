@@ -65,6 +65,7 @@ pub async fn run_udp_discovery_responder(
     tracing::info!(port, "Authenticated WireWave UDP discovery responder listening");
 
     let mut buf = [0u8; 1024];
+    let mut cached: Option<(bool, std::time::Instant, Vec<u8>)> = None;
     loop {
         let Ok((len, peer)) = socket.recv_from(&mut buf).await else {
             continue;
@@ -73,25 +74,41 @@ pub async fn run_udp_discovery_responder(
             continue;
         }
 
-        let announcement = HostAnnouncement {
-            desktop_id: desktop_id.clone(),
-            pc_name: pc_name.clone(),
-            tcp_port: APP_CONFIG.connection.tcp_port,
-            bt_service_uuid: APP_CONFIG.connection.bt_service_uuid.to_string(),
-            busy: is_busy(),
-        };
-        if let Ok(json) = serde_json::to_vec(&announcement) {
-            let signing_payload = discovery_signing_payload(&json);
-            let signature = sign_announcement(&signing_payload);
-            let public_key = hex::decode(&desktop_public_key_hex)
-                .ok()
-                .and_then(|bytes| bytes.try_into().ok());
-            let signature: Option<[u8; SIGNATURE_LEN]> = signature.try_into().ok();
-            if let (Some(public_key), Some(signature)) = (public_key, signature) {
-                let reply = encode_signed_announcement(&json, &public_key, &signature);
-                let _ = socket.send_to(&reply, peer).await;
+        let busy = is_busy();
+        let now = std::time::Instant::now();
+        let reply = match &cached {
+            Some((c_busy, c_time, c_bytes))
+                if *c_busy == busy && now.duration_since(*c_time) < std::time::Duration::from_secs(1) =>
+            {
+                c_bytes.clone()
             }
-        }
+            _ => {
+                let announcement = HostAnnouncement {
+                    desktop_id: desktop_id.clone(),
+                    pc_name: pc_name.clone(),
+                    tcp_port: APP_CONFIG.connection.tcp_port,
+                    bt_service_uuid: APP_CONFIG.connection.bt_service_uuid.to_string(),
+                    busy,
+                };
+                let Ok(json) = serde_json::to_vec(&announcement) else {
+                    continue;
+                };
+                let signing_payload = discovery_signing_payload(&json);
+                let signature = sign_announcement(&signing_payload);
+                let public_key = hex::decode(&desktop_public_key_hex)
+                    .ok()
+                    .and_then(|bytes| bytes.try_into().ok());
+                let signature: Option<[u8; SIGNATURE_LEN]> = signature.try_into().ok();
+                let Some((public_key, signature)) = public_key.zip(signature) else {
+                    continue;
+                };
+                let encoded = encode_signed_announcement(&json, &public_key, &signature);
+                cached = Some((busy, now, encoded.clone()));
+                encoded
+            }
+        };
+
+        let _ = socket.send_to(&reply, peer).await;
     }
 }
 

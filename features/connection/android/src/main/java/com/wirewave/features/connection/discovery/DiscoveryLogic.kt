@@ -35,7 +35,8 @@ class DiscoveryController(
                 val trusted = if (lastId != null) session.store.getTrustedDesktop(lastId) else null
                 val match = found.firstOrNull { host ->
                     if (host.busy) return@firstOrNull false
-                    host.desktopId == lastId || (trusted != null && host.pcName.equals(trusted.pcName, ignoreCase = true))
+                    if (lastId == null || trusted == null) return@firstOrNull false
+                    host.desktopId == lastId && (host.publicKeyHex == null || host.publicKeyHex.equals(trusted.publicKeyHex, ignoreCase = true))
                 }
                 if (match != null) {
                     session.connect(match)

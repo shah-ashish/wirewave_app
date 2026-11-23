@@ -1,6 +1,6 @@
 {
-  "version_name": "1.1.2",
-  "version_code": 10102,
+  "version_name": "1.1.3",
+  "version_code": 10103,
   "update_endpoint": "https://wirewave-updates.ashisg778.workers.dev",
   "update_app_ids": {
     "desktop": "ww-upd-win",

@@ -15,8 +15,8 @@ use tokio::{
 };
 use wirewave_core_config::APP_CONFIG;
 use wirewave_core_crypto::{
-    derive_session_key, generate_otp, verify_otp_proof, verify_peer_signature, IdentityKeypair,
-    CipherRole, SessionCipher,
+    compute_exchange_hash, derive_session_key, generate_otp, verify_otp_proof,
+    verify_peer_signature, IdentityKeypair, CipherRole, SessionCipher,
 };
 use wirewave_core_discovery::run_udp_discovery_responder;
 use wirewave_core_identity::DeviceIdentity;
@@ -279,7 +279,8 @@ impl SessionManager {
                                     };
                                     let mgr = Arc::clone(&stream_session);
                                     runtime_handle.spawn(async move {
-                                        mgr.handle_incoming_stream(stream).await;
+                                        mgr.handle_incoming_stream(stream, TransportKind::Bluetooth)
+                                            .await;
                                     });
                                 },
                             );
@@ -318,12 +319,16 @@ impl SessionManager {
             };
             let mgr = Arc::clone(&self);
             tokio::spawn(async move {
-                mgr.handle_incoming_stream(stream).await;
+                mgr.handle_incoming_stream(stream, TransportKind::WiFi).await;
             });
         }
     }
 
-    async fn handle_incoming_stream(self: Arc<Self>, mut stream: TcpStream) {
+    async fn handle_incoming_stream(
+        self: Arc<Self>,
+        mut stream: TcpStream,
+        actual_transport: TransportKind,
+    ) {
         let Ok(raw_hello) = read_frame(&mut stream).await else {
             return;
         };
@@ -334,6 +339,7 @@ impl SessionManager {
             public_key_hex,
             ephemeral_x25519_hex,
             transport,
+            require_pairing,
         }) = serde_json::from_slice::<ControlMessage>(&raw_hello)
         else {
             return;
@@ -344,8 +350,20 @@ impl SessionManager {
             return;
         }
 
+        // Verify that client-reported transport matches the actual incoming listener socket.
+        if transport != actual_transport {
+            let _ = send_control(
+                &mut stream,
+                &ControlMessage::Rejected {
+                    code: RejectCode::AuthFailed,
+                },
+            )
+            .await;
+            return;
+        }
+
         // Arbitrate lock, blocklist, trust, and transport priority.
-        let decision = self.arbitrate_incoming(&device_id, transport);
+        let decision = self.arbitrate_incoming(&device_id, actual_transport, require_pairing);
         let peer_x25519 = match decode_x25519(&ephemeral_x25519_hex) {
             Some(pk) => pk,
             None => return,
@@ -362,6 +380,7 @@ impl SessionManager {
                     device_name,
                     stored_pubkey,
                     peer_x25519,
+                    ephemeral_x25519_hex,
                     transport,
                 )
                 .await;
@@ -373,6 +392,7 @@ impl SessionManager {
                     device_name,
                     public_key_hex,
                     peer_x25519,
+                    ephemeral_x25519_hex,
                     transport,
                 )
                 .await;
@@ -381,7 +401,12 @@ impl SessionManager {
         self.clear_handshake_reservation(&device_id, transport);
     }
 
-    fn arbitrate_incoming(&self, device_id: &str, incoming_transport: TransportKind) -> IncomingDecision {
+    fn arbitrate_incoming(
+        &self,
+        device_id: &str,
+        incoming_transport: TransportKind,
+        require_pairing: bool,
+    ) -> IncomingDecision {
         let mut guard = self.inner.write().expect("session lock poisoned");
         if guard.trust.is_blocked(device_id) {
             return IncomingDecision::Reject(RejectCode::Blocked);
@@ -402,9 +427,13 @@ impl SessionManager {
                     device_id: device_id.to_string(),
                     transport: incoming_transport,
                 });
-                match trusted_pubkey {
-                    Some(pk) => IncomingDecision::TrustedChallenge { stored_pubkey: pk },
-                    None => IncomingDecision::RequireOtp,
+                if require_pairing {
+                    IncomingDecision::RequireOtp
+                } else {
+                    match trusted_pubkey {
+                        Some(pk) => IncomingDecision::TrustedChallenge { stored_pubkey: pk },
+                        None => IncomingDecision::RequireOtp,
+                    }
                 }
             }
             SessionState::Pairing(_) => IncomingDecision::Reject(RejectCode::Busy),
@@ -412,7 +441,9 @@ impl SessionManager {
                 // Preempt only if the incoming link strictly outranks the current link AND the peer is trusted.
                 let priority = guard.prefs.get().priority;
                 let can_preempt =
-                    priority.outranks(incoming_transport, active.transport) && trusted_pubkey.is_some();
+                    priority.outranks(incoming_transport, active.transport)
+                        && trusted_pubkey.is_some()
+                        && !require_pairing;
                 match (can_preempt, trusted_pubkey) {
                     (true, Some(pk)) => {
                         if let Some(tx) = guard.active_cancel_tx.take() {
@@ -438,10 +469,12 @@ impl SessionManager {
         device_name: String,
         stored_pubkey: String,
         peer_x25519: PublicKey,
+        client_x25519_hex: String,
         transport: TransportKind,
     ) {
         let server_ephemeral = EphemeralSecret::random_from_rng(OsRng);
         let server_ephemeral_pub = PublicKey::from(&server_ephemeral);
+        let server_x25519_hex = hex::encode(server_ephemeral_pub.as_bytes());
         let shared = server_ephemeral.diffie_hellman(&peer_x25519);
 
         let mut nonce = [0u8; 32];
@@ -452,7 +485,7 @@ impl SessionManager {
             desktop_id: self.desktop_id.clone(),
             desktop_name: self.pc_name.clone(),
             desktop_public_key_hex: self.keypair.public_key_hex(),
-            ephemeral_x25519_hex: hex::encode(server_ephemeral_pub.as_bytes()),
+            ephemeral_x25519_hex: server_x25519_hex.clone(),
             nonce_hex: nonce_hex.clone(),
         };
         if send_control(&mut stream, &challenge).await.is_err() {
@@ -468,10 +501,18 @@ impl SessionManager {
             return;
         };
 
-        let transcript = format!("{}:{}:{}", self.desktop_id, device_id, nonce_hex);
+        let exchange_hash = compute_exchange_hash(
+            &self.desktop_id,
+            &device_id,
+            &self.keypair.public_key_hex(),
+            &stored_pubkey,
+            &server_x25519_hex,
+            &client_x25519_hex,
+            &nonce_hex,
+        );
         let sig_valid = hex::decode(&signature_hex)
             .ok()
-            .and_then(|sig| verify_peer_signature(&stored_pubkey, transcript.as_bytes(), &sig).ok())
+            .and_then(|sig| verify_peer_signature(&stored_pubkey, &exchange_hash, &sig).ok())
             .is_some();
 
         if !sig_valid {
@@ -485,7 +526,7 @@ impl SessionManager {
             return;
         }
 
-        let desktop_sig = hex::encode(self.keypair.sign(transcript.as_bytes()));
+        let desktop_sig = hex::encode(self.keypair.sign(&exchange_hash));
         if send_control(
             &mut stream,
             &ControlMessage::SessionReady {
@@ -499,7 +540,7 @@ impl SessionManager {
             return;
         }
 
-        let session_key = derive_session_key(shared.as_bytes(), transcript.as_bytes());
+        let session_key = derive_session_key(shared.as_bytes(), &exchange_hash);
         self.enter_connected_loop(
             stream,
             device_id,
@@ -517,10 +558,12 @@ impl SessionManager {
         device_name: String,
         peer_pubkey_hex: String,
         peer_x25519: PublicKey,
+        client_x25519_hex: String,
         transport: TransportKind,
     ) {
         let server_ephemeral = EphemeralSecret::random_from_rng(OsRng);
         let server_ephemeral_pub = PublicKey::from(&server_ephemeral);
+        let server_x25519_hex = hex::encode(server_ephemeral_pub.as_bytes());
         let shared = server_ephemeral.diffie_hellman(&peer_x25519);
 
         let otp_code = generate_otp();
@@ -545,7 +588,7 @@ impl SessionManager {
             desktop_id: self.desktop_id.clone(),
             desktop_name: self.pc_name.clone(),
             desktop_public_key_hex: self.keypair.public_key_hex(),
-            ephemeral_x25519_hex: hex::encode(server_ephemeral_pub.as_bytes()),
+            ephemeral_x25519_hex: server_x25519_hex.clone(),
             ttl_secs,
         };
         if send_control(&mut stream, &prompt).await.is_err() {
@@ -553,7 +596,15 @@ impl SessionManager {
             return;
         }
 
-        let transcript = format!("{}:{}", self.desktop_id, device_id);
+        let exchange_hash = compute_exchange_hash(
+            &self.desktop_id,
+            &device_id,
+            &self.keypair.public_key_hex(),
+            &peer_pubkey_hex,
+            &server_x25519_hex,
+            &client_x25519_hex,
+            "",
+        );
         let deadline = time::Instant::now() + Duration::from_secs(ttl_secs);
         let max_attempts = APP_CONFIG.connection.otp_max_attempts;
         let mut verified = false;
@@ -583,11 +634,11 @@ impl SessionManager {
             };
 
             let proof_ok = hex::decode(&proof_hex)
-                .map(|p| verify_otp_proof(shared.as_bytes(), &otp_code, transcript.as_bytes(), &p))
+                .map(|p| verify_otp_proof(shared.as_bytes(), &otp_code, &exchange_hash, &p))
                 .unwrap_or(false);
             let sig_ok = hex::decode(&signature_hex)
                 .ok()
-                .and_then(|s| verify_peer_signature(&peer_pubkey_hex, transcript.as_bytes(), &s).ok())
+                .and_then(|s| verify_peer_signature(&peer_pubkey_hex, &exchange_hash, &s).ok())
                 .is_some();
 
             if proof_ok && sig_ok {
@@ -619,7 +670,7 @@ impl SessionManager {
             guard.pairing_cancel_tx = None;
         }
 
-        let desktop_sig = hex::encode(self.keypair.sign(transcript.as_bytes()));
+        let desktop_sig = hex::encode(self.keypair.sign(&exchange_hash));
         if send_control(
             &mut stream,
             &ControlMessage::SessionReady {
@@ -634,7 +685,7 @@ impl SessionManager {
             return;
         }
 
-        let session_key = derive_session_key(shared.as_bytes(), transcript.as_bytes());
+        let session_key = derive_session_key(shared.as_bytes(), &exchange_hash);
         self.enter_connected_loop(
             stream,
             device_id,

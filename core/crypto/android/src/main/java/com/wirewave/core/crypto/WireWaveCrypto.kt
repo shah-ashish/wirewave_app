@@ -48,7 +48,6 @@ class KeypairStore(context: Context) {
         if (decoded != null) {
             return IdentityKeypair(decoded)
         }
-        val created = IdentityKeypair.generate()
         val privBytes = ByteArray(32)
         SecureRandom().nextBytes(privBytes)
         val kp = IdentityKeypair(privBytes)
@@ -101,7 +100,11 @@ class SessionCipher(rawKey: ByteArray, role: CipherRole) : AutoCloseable {
     }
 
     fun encrypt(plaintext: ByteArray): ByteArray {
-        val counter = sendCounter++
+        val counter = sendCounter
+        if (sendCounter == Long.MAX_VALUE) {
+            throw IllegalStateException("Nonce counter exhausted")
+        }
+        sendCounter++
         val nonce = buildNonce(counter)
         val cipher = ChaCha20Poly1305()
         cipher.init(true, AEADParameters(KeyParameter(sendKey), 128, nonce))
@@ -118,7 +121,7 @@ class SessionCipher(rawKey: ByteArray, role: CipherRole) : AutoCloseable {
     fun decrypt(frame: ByteArray): ByteArray? {
         if (frame.size < 24) return null
         val counter = ByteBuffer.wrap(frame, 0, 8).long
-        if (counter < recvCounter) return null
+        if (java.lang.Long.compareUnsigned(counter, recvCounter) < 0) return null
 
         val nonce = buildNonce(counter)
         val cipher = ChaCha20Poly1305()
@@ -155,6 +158,34 @@ class SessionCipher(rawKey: ByteArray, role: CipherRole) : AutoCloseable {
 }
 
 object WireWaveCrypto {
+    fun computeExchangeHash(
+        desktopId: String,
+        deviceId: String,
+        desktopPubkeyHex: String,
+        devicePubkeyHex: String,
+        serverX25519Hex: String,
+        clientX25519Hex: String,
+        nonceHex: String
+    ): ByteArray {
+        val digest = MessageDigest.getInstance("SHA-256")
+        digest.update(AppConfig.connection.protocolDomain.toByteArray(Charsets.UTF_8))
+        digest.update(":exchange-hash:".toByteArray(Charsets.UTF_8))
+        digest.update(desktopId.toByteArray(Charsets.UTF_8))
+        digest.update(":".toByteArray(Charsets.UTF_8))
+        digest.update(deviceId.toByteArray(Charsets.UTF_8))
+        digest.update(":".toByteArray(Charsets.UTF_8))
+        digest.update(desktopPubkeyHex.toByteArray(Charsets.UTF_8))
+        digest.update(":".toByteArray(Charsets.UTF_8))
+        digest.update(devicePubkeyHex.toByteArray(Charsets.UTF_8))
+        digest.update(":".toByteArray(Charsets.UTF_8))
+        digest.update(serverX25519Hex.toByteArray(Charsets.UTF_8))
+        digest.update(":".toByteArray(Charsets.UTF_8))
+        digest.update(clientX25519Hex.toByteArray(Charsets.UTF_8))
+        digest.update(":".toByteArray(Charsets.UTF_8))
+        digest.update(nonceHex.toByteArray(Charsets.UTF_8))
+        return digest.digest()
+    }
+
     fun verifyPeerSignature(publicKeyHex: String, payload: ByteArray, signatureHex: String): Boolean {
         val pubBytes = publicKeyHex.hexToBytesOrNull()?.takeIf { it.size == 32 } ?: return false
         val sigBytes = signatureHex.hexToBytesOrNull()?.takeIf { it.size == 64 } ?: return false
