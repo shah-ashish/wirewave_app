@@ -86,6 +86,21 @@ impl UdpDataChannel {
         Ok(())
     }
 
+    /// Receives and authenticates a datagram only from the peer established by
+    /// `accept_peer_hello`. Packets from other addresses are ignored.
+    pub async fn recv_datagram(&self) -> Result<(ChannelId, u64, Vec<u8>), StreamError> {
+        let peer = self.peer_addr().ok_or(StreamError::PeerNotEstablished)?;
+        let mut buf = [0u8; MAX_UDP_DATAGRAM_BYTES];
+        loop {
+            let (len, from) = self.socket.recv_from(&mut buf).await?;
+            if from != peer {
+                continue;
+            }
+            let mut rx = self.rx_cipher.lock().map_err(|_| StreamError::DecryptFailed)?;
+            return rx.decrypt_datagram(&buf[..len]);
+        }
+    }
+
     pub fn stream_id(&self) -> u32 {
         self.stream_id
     }

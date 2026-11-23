@@ -32,6 +32,13 @@ class UdpStreamClient(
         socket.send(pkt)
     }
 
+    @Throws(IOException::class)
+    fun sendDatagram(channel: ChannelId, payload: ByteArray) {
+        val encrypted = txCipher.encryptDatagram(channel, payload)
+        val packet = DatagramPacket(encrypted, encrypted.size, targetAddr, hostUdpPort)
+        socket.send(packet)
+    }
+
     /** Blocks up to 1s for the next authenticated datagram; returns null on timeout or invalid packet. */
     fun receiveNext(): DecryptedDatagram? {
         val pkt = DatagramPacket(recvBuf, recvBuf.size)

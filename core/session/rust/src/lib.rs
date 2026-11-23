@@ -6,7 +6,7 @@ pub mod trust_store;
 
 pub use session_manager::{
     ActiveSession, PendingPairing, SessionManager, SessionSnapshot, SessionState, SharedSession,
-    SpeakerStreamHost,
+    MicStreamHost, SpeakerStreamHost,
 };
 pub use settings_store::{ConnectionPreferences, PreferencesStore};
 pub use trust_store::{TrustStore, TrustedDevice};

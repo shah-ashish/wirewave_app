@@ -7,26 +7,61 @@ use wirewave_core_config::THEME;
 
 pub trait HasServicesSettingsActions: 'static {
     fn toggle_speaker_permission(&mut self);
+    fn toggle_mic_permission(&mut self);
+}
+
+#[derive(Clone, Copy)]
+enum ServicePermission {
+    Speaker,
+    Mic,
 }
 
 pub fn render_services_section<V: Render + HasServicesSettingsActions>(
     state: &ServicesSettingsState,
     cx: &mut Context<V>,
 ) -> Div {
+    let m = THEME.metrics;
+    let speaker = render_permission_row(
+        "speaker-permission-toggle",
+        "Speaker",
+        "Allow the connected phone to start and stop desktop audio streaming",
+        state.speaker_allowed,
+        ServicePermission::Speaker,
+        cx,
+    );
+    let mic = render_permission_row(
+        "mic-permission-toggle",
+        "Mic",
+        "Allow the connected phone to start and stop microphone streaming",
+        state.mic_allowed,
+        ServicePermission::Mic,
+        cx,
+    )
+    .border_t_1()
+    .border_color(rgba(THEME.colors.divider));
+
+    div()
+        .flex()
+        .flex_col()
+        .gap(px(m.spacing_sm))
+        .child(section_label("SERVICES"))
+        .child(surface_card().child(speaker).child(mic))
+}
+
+fn render_permission_row<V: Render + HasServicesSettingsActions>(
+    id: &'static str,
+    title: &'static str,
+    subtitle: &'static str,
+    enabled: bool,
+    permission: ServicePermission,
+    cx: &mut Context<V>,
+) -> Div {
     let c = THEME.colors;
     let m = THEME.metrics;
-    let track = if state.speaker_allowed {
-        c.status_ok_fg
-    } else {
-        c.border_subtle
-    };
-    let align = if state.speaker_allowed {
-        div().justify_end()
-    } else {
-        div().justify_start()
-    };
+    let track = if enabled { c.status_ok_fg } else { c.border_subtle };
+    let align = if enabled { div().justify_end() } else { div().justify_start() };
 
-    let row = div()
+    div()
         .px(px(m.spacing_md))
         .py(px(14.0))
         .flex()
@@ -44,20 +79,18 @@ pub fn render_services_section<V: Render + HasServicesSettingsActions>(
                     div()
                         .text_size(px(THEME.typography.font_body))
                         .text_color(rgba(c.text_primary))
-                        .child("Speaker"),
+                            .child(title),
                 )
                 .child(
                     div()
                         .text_size(px(THEME.typography.font_badge - 1.0))
                         .text_color(rgba(c.text_secondary))
-                        .child(
-                            "Allow the connected phone to start and stop desktop audio streaming",
-                        ),
+                        .child(subtitle),
                 ),
         )
         .child(
             align
-                .id("speaker-permission-toggle")
+                .id(id)
                 .cursor_pointer()
                 .w(px(46.0))
                 .h(px(26.0))
@@ -67,8 +100,11 @@ pub fn render_services_section<V: Render + HasServicesSettingsActions>(
                 .flex()
                 .flex_row()
                 .items_center()
-                .on_click(cx.listener(|view, _ev, _win, cx| {
-                    view.toggle_speaker_permission();
+                .on_click(cx.listener(move |view, _ev, _win, cx| {
+                    match permission {
+                        ServicePermission::Speaker => view.toggle_speaker_permission(),
+                        ServicePermission::Mic => view.toggle_mic_permission(),
+                    }
                     cx.notify();
                 }))
                 .child(
@@ -77,12 +113,5 @@ pub fn render_services_section<V: Render + HasServicesSettingsActions>(
                         .rounded(px(m.radius_pill))
                         .bg(rgba(c.text_primary)),
                 ),
-        );
-
-    div()
-        .flex()
-        .flex_col()
-        .gap(px(m.spacing_sm))
-        .child(section_label("SERVICES"))
-        .child(surface_card().child(row))
+        )
 }

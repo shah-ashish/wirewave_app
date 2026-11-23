@@ -21,7 +21,9 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +42,16 @@ import java.util.concurrent.atomic.AtomicReference
 
 data class SpeakerRemoteState(
     val allowed: Boolean = true,
+    val active: Boolean = false,
+    val hostAddress: String? = null,
+    val udpPort: Int? = null,
+    val streamId: Int? = null,
+    val udpKey: ByteArray? = null,
+    val detail: String? = null
+)
+
+data class MicRemoteState(
+    val allowed: Boolean = false,
     val active: Boolean = false,
     val hostAddress: String? = null,
     val udpPort: Int? = null,
@@ -81,7 +93,9 @@ class SessionController(
     val state: StateFlow<ClientSessionState> = _state.asStateFlow()
     private val _speakerState = MutableStateFlow(SpeakerRemoteState())
     val speakerState: StateFlow<SpeakerRemoteState> = _speakerState.asStateFlow()
-    private val pendingSpeakerCommand = AtomicReference<Boolean?>(null)
+    private val _micState = MutableStateFlow(MicRemoteState())
+    val micState: StateFlow<MicRemoteState> = _micState.asStateFlow()
+    private val outboundControls = AtomicReference<OutboundControlQueue?>(null)
 
     private var connectionJob: Job? = null
     private var activeConnection: Closeable? = null
@@ -110,7 +124,12 @@ class SessionController(
 
     fun requestSpeakerActive(active: Boolean) {
         if (active && !_speakerState.value.allowed) return
-        pendingSpeakerCommand.set(active)
+        outboundControls.get()?.trySendSpeaker(active)
+    }
+
+    fun requestMicActive(active: Boolean) {
+        if (active && !_micState.value.allowed) return
+        outboundControls.get()?.trySendMic(active)
     }
 
     fun cancelPairing() {
@@ -398,65 +417,88 @@ class SessionController(
         input: DataInputStream,
         output: DataOutputStream
     ) {
+        val controls = OutboundControlQueue()
+        outboundControls.set(controls)
         onForegroundStateChanged(true, pcName)
         _state.update { ClientSessionState.Connected(desktopId, pcName, transport) }
 
-        cipher.use { activeCipher ->
-            var seq = 0L
-            while (scope.isActive) {
-                val frame = FrameCodec.readFrame(input)
-                val plain = activeCipher.decrypt(frame) ?: break
-                val msg = JSONObject(String(plain, Charsets.UTF_8))
-                when (msg.optString("type")) {
-                    "heartbeat_ping" -> {
-                        val pong = JSONObject().apply {
-                            put("type", "heartbeat_pong")
-                            put("seq", msg.optLong("seq", ++seq))
-                        }
-                        FrameCodec.writeFrame(output, activeCipher.encrypt(pong.toString().toByteArray(Charsets.UTF_8)))
-                    }
-                    "speaker_state" -> {
-                        val active = msg.optBoolean("active", false)
-                        val key = msg.optString("udp_key_hex")
-                            .takeIf { active && it.length == 64 }
-                            ?.hexToBytesOrNull()
-                        _speakerState.update {
-                            SpeakerRemoteState(
-                                allowed = msg.optBoolean("allowed", false),
-                                active = active,
-                                hostAddress = hostAddress,
-                                udpPort = msg.optInt("udp_port").takeIf { active && it > 0 },
-                                streamId = msg.optInt("stream_id").takeIf { active },
-                                udpKey = key,
-                                detail = msg.optString("detail").takeIf { it.isNotBlank() }
-                            )
+        try {
+            cipher.use { activeCipher ->
+                coroutineScope {
+                    val writer = launch(ioDispatcher) {
+                        for (command in controls.commands) {
+                            FrameCodec.writeFrame(output, activeCipher.encrypt(command.encode()))
                         }
                     }
-                    "disconnect" -> break
-                }
-                pendingSpeakerCommand.getAndSet(null)?.let { active ->
-                    val command = JSONObject().apply {
-                        put("type", "speaker_command")
-                        put("active", active)
+
+                    try {
+                        var seq = 0L
+                        while (currentCoroutineContext().isActive) {
+                            val frame = FrameCodec.readFrame(input)
+                            val plain = activeCipher.decrypt(frame) ?: break
+                            val msg = JSONObject(String(plain, Charsets.UTF_8))
+                            when (msg.optString("type")) {
+                                "heartbeat_ping" -> controls.sendHeartbeatPong(
+                                    msg.optLong("seq", ++seq)
+                                )
+                                "speaker_state" -> {
+                                    val active = msg.optBoolean("active", false)
+                                    val key = msg.optString("udp_key_hex")
+                                        .takeIf { active && it.length == 64 }
+                                        ?.hexToBytesOrNull()
+                                    _speakerState.update {
+                                        SpeakerRemoteState(
+                                            allowed = msg.optBoolean("allowed", false),
+                                            active = active,
+                                            hostAddress = hostAddress,
+                                            udpPort = msg.optInt("udp_port").takeIf { active && it > 0 },
+                                            streamId = msg.optInt("stream_id").takeIf { active },
+                                            udpKey = key,
+                                            detail = msg.optString("detail").takeIf { it.isNotBlank() }
+                                        )
+                                    }
+                                }
+                                "mic_state" -> {
+                                    val active = msg.optBoolean("active", false)
+                                    val key = msg.optString("udp_key_hex")
+                                        .takeIf { active && it.length == 64 }
+                                        ?.hexToBytesOrNull()
+                                    _micState.update {
+                                        MicRemoteState(
+                                            allowed = msg.optBoolean("allowed", false),
+                                            active = active,
+                                            hostAddress = hostAddress,
+                                            udpPort = msg.optInt("udp_port").takeIf { active && it > 0 },
+                                            streamId = msg.optInt("stream_id").takeIf { active },
+                                            udpKey = key,
+                                            detail = msg.optString("detail").takeIf { it.isNotBlank() }
+                                        )
+                                    }
+                                }
+                                "disconnect" -> break
+                            }
+                        }
+                    } finally {
+                        controls.close()
+                        writer.cancelAndJoin()
                     }
-                    FrameCodec.writeFrame(
-                        output,
-                        activeCipher.encrypt(command.toString().toByteArray(Charsets.UTF_8))
-                    )
                 }
-                delay(10)
             }
+        } finally {
+            outboundControls.compareAndSet(controls, null)
+            controls.close()
+            onForegroundStateChanged(false, null)
+            _speakerState.update { SpeakerRemoteState() }
+            _micState.update { MicRemoteState() }
+            _state.update { ClientSessionState.Disconnected() }
         }
-        onForegroundStateChanged(false, null)
-        pendingSpeakerCommand.set(null)
-        _speakerState.update { SpeakerRemoteState() }
-        _state.update { ClientSessionState.Disconnected() }
     }
 
     private fun failSession(message: String) {
         onForegroundStateChanged(false, null)
-        pendingSpeakerCommand.set(null)
+        outboundControls.getAndSet(null)?.close()
         _speakerState.update { SpeakerRemoteState() }
+        _micState.update { MicRemoteState() }
         _state.update { ClientSessionState.Disconnected(message) }
     }
 

@@ -89,6 +89,7 @@ dependencies {
     implementation(project(":features:connection"))
     implementation(project(":core:stream"))
     implementation(project(":features:speaker"))
+    implementation(project(":features:mic"))
 
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.core:core-ktx:1.12.0")

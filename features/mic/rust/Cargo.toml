@@ -1,0 +1,24 @@
+[package]
+name = "wirewave-feature-mic"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gpui = { workspace = true }
+open = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+wirewave-core-config = { workspace = true }
+wirewave-core-session = { workspace = true }
+wirewave-core-stream = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { workspace = true, features = [
+    "Win32_Devices_FunctionDiscovery",
+    "Win32_Media_Audio",
+    "Win32_Media_KernelStreaming",
+    "Win32_Media_Multimedia",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_UI_Shell_PropertiesSystem",
+] }

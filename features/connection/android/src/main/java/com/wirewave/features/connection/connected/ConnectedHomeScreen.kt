@@ -22,7 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Keyboard
-import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.Mouse
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Tune
@@ -45,6 +44,7 @@ import com.wirewave.core.config.AppConfig
 import com.wirewave.core.config.WireWaveTheme
 import com.wirewave.core.transport.TransportKind
 import com.wirewave.features.speaker.SpeakerCircleTile
+import com.wirewave.features.mic.MicCircleTile
 
 private data class ServiceCircleSpec(val label: String, val icon: ImageVector)
 private data class UsePhoneRowSpec(
@@ -68,11 +68,14 @@ fun ConnectedHomeScreen(
     isSpeakerOn: Boolean = false,
     isSpeakerBlocked: Boolean = false,
     onToggleSpeaker: () -> Unit = {},
+    isMicOn: Boolean = false,
+    isMicBlocked: Boolean = true,
+    micBlockedDetail: String? = null,
+    onToggleMic: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     val remainingCircles = listOf(
-        ServiceCircleSpec("Mic", Icons.Rounded.Mic),
         ServiceCircleSpec("Keyboard", Icons.Rounded.Keyboard)
     )
     val rows = listOf(
@@ -159,7 +162,7 @@ fun ConnectedHomeScreen(
 
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(
-                text = "Audio & input · Coming soon",
+                text = "Audio & input",
                 color = WireWaveTheme.Colors.textSection,
                 fontSize = WireWaveTheme.Typography.section,
                 fontWeight = FontWeight.Medium
@@ -172,6 +175,12 @@ fun ConnectedHomeScreen(
                     isOn = isSpeakerOn,
                     isBlocked = isSpeakerBlocked,
                     onToggle = onToggleSpeaker
+                )
+                MicCircleTile(
+                    isOn = isMicOn,
+                    isBlocked = isMicBlocked,
+                    blockedDetail = micBlockedDetail,
+                    onToggle = onToggleMic
                 )
                 remainingCircles.forEach { spec ->
                     Column(

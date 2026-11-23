@@ -127,6 +127,17 @@ pub enum ControlMessage {
         stream_id: Option<u32>,
         udp_key_hex: Option<String>,
     },
+    MicCommand {
+        active: bool,
+    },
+    MicState {
+        allowed: bool,
+        active: bool,
+        detail: Option<String>,
+        udp_port: Option<u16>,
+        stream_id: Option<u32>,
+        udp_key_hex: Option<String>,
+    },
     Disconnect {
         reason: String,
     },
@@ -220,6 +231,33 @@ mod tests {
         assert!(matches!(
             decoded,
             ControlMessage::SpeakerState {
+                allowed: true,
+                active: true,
+                ..
+            }
+        ));
+    }
+
+    #[test]
+    fn mic_control_messages_roundtrip() {
+        let command = ControlMessage::MicCommand { active: true };
+        let encoded = serde_json::to_vec(&command).expect("encode");
+        let decoded: ControlMessage = serde_json::from_slice(&encoded).expect("decode");
+        assert!(matches!(decoded, ControlMessage::MicCommand { active: true }));
+
+        let state = ControlMessage::MicState {
+            allowed: true,
+            active: true,
+            detail: Some("CABLE Input".into()),
+            udp_port: Some(3034),
+            stream_id: Some(8),
+            udp_key_hex: Some("00".repeat(32)),
+        };
+        let encoded = serde_json::to_vec(&state).expect("encode");
+        let decoded: ControlMessage = serde_json::from_slice(&encoded).expect("decode");
+        assert!(matches!(
+            decoded,
+            ControlMessage::MicState {
                 allowed: true,
                 active: true,
                 ..

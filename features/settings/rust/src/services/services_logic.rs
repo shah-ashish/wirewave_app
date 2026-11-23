@@ -3,12 +3,14 @@ use wirewave_core_session::ConnectionPreferences;
 #[derive(Debug, Clone, Copy)]
 pub struct ServicesSettingsState {
     pub speaker_allowed: bool,
+    pub mic_allowed: bool,
 }
 
 impl ServicesSettingsState {
     pub fn from_prefs(prefs: ConnectionPreferences) -> Self {
         Self {
             speaker_allowed: prefs.speaker_service_allowed,
+            mic_allowed: prefs.mic_service_allowed,
         }
     }
 }
@@ -22,5 +24,6 @@ mod tests {
         let state = ServicesSettingsState::from_prefs(ConnectionPreferences::default());
 
         assert!(state.speaker_allowed);
+        assert!(state.mic_allowed);
     }
 }

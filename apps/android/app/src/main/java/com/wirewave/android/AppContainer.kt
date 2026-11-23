@@ -20,6 +20,7 @@ import com.wirewave.features.settings.about.AboutLogic
 import com.wirewave.features.settings.about.AboutSnapshot
 import com.wirewave.features.settings.update.UpdateController
 import com.wirewave.features.speaker.SpeakerEngine
+import com.wirewave.features.mic.MicCaptureEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -80,6 +81,15 @@ class AppContainer(context: Context) {
     )
 
     val speakerEngine: SpeakerEngine = SpeakerEngine(appScope)
+    val micCaptureEngine: MicCaptureEngine = MicCaptureEngine(appScope)
+
+    fun updateMicrophoneForeground(active: Boolean, pcName: String) {
+        if (active || trustStore.connectionPrefs.value.keepAliveInBackground) {
+            WireWaveConnectionService.start(appContext, pcName, microphoneActive = active)
+        } else {
+            WireWaveConnectionService.stop(appContext)
+        }
+    }
 
     fun aboutSnapshotFor(connectedPc: String?): AboutSnapshot = AboutLogic.loadSnapshot(
         context = appContext,

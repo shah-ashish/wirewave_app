@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
@@ -92,6 +93,7 @@ class MainActivity : ComponentActivity() {
         val container = (application as WireWaveApp).container
         if (!container.trustStore.connectionPrefs.value.keepAliveInBackground) {
             container.speakerEngine.stop()
+            container.micCaptureEngine.stop()
             if (container.sessionController.state.value is ClientSessionState.Connected) {
                 container.sessionController.disconnectForBackground()
             }
@@ -122,6 +124,13 @@ private fun WireWaveRoot(
     val connectionPrefs by container.trustStore.connectionPrefs.collectAsState()
     val speakerState by container.speakerEngine.state.collectAsState()
     val speakerRemoteState by container.sessionController.speakerState.collectAsState()
+    val micCaptureState by container.micCaptureEngine.state.collectAsState()
+    val micRemoteState by container.sessionController.micState.collectAsState()
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) container.sessionController.requestMicActive(true)
+    }
 
     LaunchedEffect(
         speakerRemoteState.active,
@@ -140,6 +149,39 @@ private fun WireWaveRoot(
             container.speakerEngine.start(host, port, key, streamId)
         } else {
             container.speakerEngine.stop()
+        }
+    }
+
+    LaunchedEffect(
+        micRemoteState.active,
+        micRemoteState.hostAddress,
+        micRemoteState.udpPort,
+        micRemoteState.streamId,
+        micRemoteState.udpKey,
+        sessionState
+    ) {
+        val host = micRemoteState.hostAddress
+        val port = micRemoteState.udpPort
+        val streamId = micRemoteState.streamId
+        val key = micRemoteState.udpKey
+        val connected = sessionState as? ClientSessionState.Connected
+        val pcName = connected?.pcName ?: "PC"
+        if (connected != null && micRemoteState.allowed && micRemoteState.active &&
+            host != null && port != null && streamId != null && key != null
+        ) {
+            container.updateMicrophoneForeground(true, pcName)
+            container.micCaptureEngine.start(host, port, key, streamId)
+        } else {
+            container.micCaptureEngine.stop()
+            if (connected != null) {
+                container.updateMicrophoneForeground(false, pcName)
+            }
+        }
+    }
+
+    LaunchedEffect(micCaptureState.error) {
+        if (micCaptureState.error != null && micRemoteState.active) {
+            container.sessionController.requestMicActive(false)
         }
     }
 
@@ -168,8 +210,12 @@ private fun WireWaveRoot(
                 container.trustStore.setKeepAliveInBackground(enabled)
                 val state = container.sessionController.state.value
                 if (state is ClientSessionState.Connected) {
-                    if (enabled) {
-                        WireWaveConnectionService.start(context, state.pcName)
+                    if (enabled || micRemoteState.active) {
+                        WireWaveConnectionService.start(
+                            context,
+                            state.pcName,
+                            microphoneActive = micRemoteState.active
+                        )
                     } else {
                         WireWaveConnectionService.stop(context)
                     }
@@ -216,6 +262,7 @@ private fun WireWaveRoot(
             transport = state.transport,
             onDisconnect = {
                 container.speakerEngine.stop()
+                container.micCaptureEngine.stop()
                 container.sessionController.disconnectExplicitly()
             },
             onOpenSettings = { showSettings = true },
@@ -224,6 +271,22 @@ private fun WireWaveRoot(
             isSpeakerBlocked = !speakerRemoteState.allowed,
             onToggleSpeaker = {
                 container.sessionController.requestSpeakerActive(!speakerRemoteState.active)
+            },
+            isMicOn = micCaptureState.isOn,
+            isMicBlocked = !micRemoteState.allowed,
+            micBlockedDetail = micRemoteState.detail,
+            onToggleMic = {
+                if (micRemoteState.active) {
+                    container.sessionController.requestMicActive(false)
+                } else if (ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.RECORD_AUDIO
+                    ) == PackageManager.PERMISSION_GRANTED
+                ) {
+                    container.sessionController.requestMicActive(true)
+                } else {
+                    micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
             }
         )
     }

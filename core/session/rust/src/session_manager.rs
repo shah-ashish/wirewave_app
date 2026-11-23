@@ -96,6 +96,7 @@ struct SessionInner {
     wifi_listening: bool,
     bluetooth_listening: bool,
     speaker_policy_tx: watch::Sender<bool>,
+    mic_policy_tx: watch::Sender<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -112,6 +113,16 @@ pub trait SpeakerStreamHost: Send + Sync {
     fn status_detail(&self) -> Option<String>;
 }
 
+pub trait MicStreamHost: Send + Sync {
+    fn start_stream(
+        &self,
+        channel: Arc<UdpDataChannel>,
+        runtime: tokio::runtime::Handle,
+    ) -> Result<String, String>;
+    fn stop_stream(&self);
+    fn available_driver(&self) -> Option<String>;
+}
+
 /// Owns the 1-to-1 desktop session lock, trust agreement store, priority arbitration,
 /// and background encrypted listeners (Wi-Fi TCP + UDP authenticated discovery).
 pub struct SessionManager {
@@ -120,6 +131,7 @@ pub struct SessionManager {
     keypair: IdentityKeypair,
     inner: RwLock<SessionInner>,
     speaker_host: Arc<dyn SpeakerStreamHost>,
+    mic_host: Arc<dyn MicStreamHost>,
 }
 
 impl SessionManager {
@@ -127,6 +139,7 @@ impl SessionManager {
         identity: DeviceIdentity,
         keypair: IdentityKeypair,
         speaker_host: Arc<dyn SpeakerStreamHost>,
+        mic_host: Arc<dyn MicStreamHost>,
     ) -> SharedSession {
         let pc_name = hostname::get()
             .ok()
@@ -136,6 +149,7 @@ impl SessionManager {
 
         let prefs = PreferencesStore::load_default();
         let (speaker_policy_tx, _) = watch::channel(prefs.get().speaker_service_allowed);
+        let (mic_policy_tx, _) = watch::channel(prefs.get().mic_service_allowed);
         Arc::new(Self {
             desktop_id: identity.device_id,
             pc_name,
@@ -150,8 +164,10 @@ impl SessionManager {
                 wifi_listening: false,
                 bluetooth_listening: false,
                 speaker_policy_tx,
+                mic_policy_tx,
             }),
             speaker_host,
+            mic_host,
         })
     }
 
@@ -190,6 +206,21 @@ impl SessionManager {
         if !allowed {
             self.speaker_host.stop_stream();
         }
+    }
+
+    pub fn set_mic_service_allowed(&self, allowed: bool) {
+        let mut guard = self.inner.write().expect("session lock poisoned");
+        guard.prefs.set_mic_service_allowed(allowed);
+        let _ = guard.mic_policy_tx.send(allowed);
+        if !allowed {
+            self.mic_host.stop_stream();
+        }
+    }
+
+    pub fn refresh_mic_service_state(&self) {
+        let guard = self.inner.read().expect("session lock poisoned");
+        let allowed = guard.prefs.get().mic_service_allowed;
+        guard.mic_policy_tx.send_replace(allowed);
     }
 
     pub fn disconnect_active(&self) {
@@ -733,6 +764,12 @@ impl SessionManager {
             });
             guard.speaker_policy_tx.subscribe()
         };
+        let mut mic_policy_rx = self
+            .inner
+            .read()
+            .expect("session lock poisoned")
+            .mic_policy_tx
+            .subscribe();
 
         let initially_allowed = self
             .inner
@@ -759,11 +796,44 @@ impl SessionManager {
             return;
         }
 
+        let mic_permission = self
+            .inner
+            .read()
+            .expect("session lock poisoned")
+            .prefs
+            .get()
+            .mic_service_allowed;
+        let mic_driver = self.mic_host.available_driver();
+        let mic_allowed = mic_permission && mic_driver.is_some();
+        let mic_detail = match (mic_permission, mic_driver) {
+            (false, _) => Some("Blocked by desktop settings".into()),
+            (true, None) => Some("Compatible virtual microphone driver required".into()),
+            (true, Some(driver)) => Some(driver),
+        };
+        let initial_mic_state = ControlMessage::MicState {
+            allowed: mic_allowed,
+            active: false,
+            detail: mic_detail,
+            udp_port: None,
+            stream_id: None,
+            udp_key_hex: None,
+        };
+        if send_encrypted(&mut stream, &mut cipher, &initial_mic_state)
+            .await
+            .is_err()
+        {
+            let mut guard = self.inner.write().expect("session lock poisoned");
+            guard.active_cancel_tx = None;
+            guard.state = SessionState::Idle;
+            return;
+        }
+
         let hb_interval = Duration::from_secs(APP_CONFIG.connection.heartbeat_interval_secs);
         let hb_timeout = Duration::from_secs(APP_CONFIG.connection.heartbeat_timeout_secs);
         let mut ticker = time::interval(hb_interval);
         let mut seq: u64 = 0;
         let mut last_seen = Instant::now();
+        let mut speaker_hello_task: Option<tokio::task::JoinHandle<()>> = None;
 
         loop {
             tokio::select! {
@@ -778,12 +848,40 @@ impl SessionManager {
                     }
                     let allowed = *speaker_policy_rx.borrow();
                     if !allowed {
+                        if let Some(task) = speaker_hello_task.take() {
+                            task.abort();
+                        }
                         self.speaker_host.stop_stream();
                     }
                     let state = ControlMessage::SpeakerState {
                         allowed,
                         active: false,
                         detail: (!allowed).then(|| "Blocked by desktop settings".into()),
+                        udp_port: None,
+                        stream_id: None,
+                        udp_key_hex: None,
+                    };
+                    if send_encrypted(&mut stream, &mut cipher, &state).await.is_err() {
+                        break;
+                    }
+                }
+                changed = mic_policy_rx.changed() => {
+                    if changed.is_err() {
+                        break;
+                    }
+                    let permission = *mic_policy_rx.borrow();
+                    self.mic_host.stop_stream();
+                    let driver = self.mic_host.available_driver();
+                    let allowed = permission && driver.is_some();
+                    let detail = match (permission, driver) {
+                        (false, _) => Some("Blocked by desktop settings".into()),
+                        (true, None) => Some("Compatible virtual microphone driver required".into()),
+                        (true, Some(name)) => Some(name),
+                    };
+                    let state = ControlMessage::MicState {
+                        allowed,
+                        active: false,
+                        detail,
                         udp_port: None,
                         stream_id: None,
                         udp_key_hex: None,
@@ -813,6 +911,9 @@ impl SessionManager {
                         }
                         ControlMessage::HeartbeatPong { .. } => {}
                         ControlMessage::SpeakerCommand { active: false } => {
+                            if let Some(task) = speaker_hello_task.take() {
+                                task.abort();
+                            }
                             self.speaker_host.stop_stream();
                             let state = ControlMessage::SpeakerState {
                                 allowed: self.inner.read().expect("session lock poisoned").prefs.get().speaker_service_allowed,
@@ -843,10 +944,13 @@ impl SessionManager {
                             let udp_key = derive_udp_key(&session_key, stream_id);
                             match UdpDataChannel::bind(udp_key, stream_id).await {
                                 Ok((channel, endpoint)) => {
+                                    if let Some(task) = speaker_hello_task.take() {
+                                        task.abort();
+                                    }
                                     let accept_channel = Arc::clone(&channel);
-                                    tokio::spawn(async move {
+                                    speaker_hello_task = Some(tokio::spawn(async move {
                                         let _ = accept_channel.accept_peer_hello().await;
-                                    });
+                                    }));
                                     self.speaker_host.start_stream(channel, tokio::runtime::Handle::current());
                                     let state = ControlMessage::SpeakerState {
                                         allowed: true,
@@ -872,6 +976,89 @@ impl SessionManager {
                                 }
                             }
                         }
+                        ControlMessage::MicCommand { active: false } => {
+                            self.mic_host.stop_stream();
+                            let permission = self.inner.read().expect("session lock poisoned").prefs.get().mic_service_allowed;
+                            let driver = self.mic_host.available_driver();
+                            let allowed = permission && driver.is_some();
+                            let state = ControlMessage::MicState {
+                                allowed,
+                                active: false,
+                                detail: match (permission, driver) {
+                                    (false, _) => Some("Blocked by desktop settings".into()),
+                                    (true, None) => Some("Compatible virtual microphone driver required".into()),
+                                    (true, Some(name)) => Some(name),
+                                },
+                                udp_port: None,
+                                stream_id: None,
+                                udp_key_hex: None,
+                            };
+                            let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                        }
+                        ControlMessage::MicCommand { active: true } => {
+                            let permission = self.inner.read().expect("session lock poisoned").prefs.get().mic_service_allowed;
+                            let driver = self.mic_host.available_driver();
+                            if !permission || driver.is_none() {
+                                let state = ControlMessage::MicState {
+                                    allowed: false,
+                                    active: false,
+                                    detail: if permission {
+                                        Some("Compatible virtual microphone driver required".into())
+                                    } else {
+                                        Some("Blocked by desktop settings".into())
+                                    },
+                                    udp_port: None,
+                                    stream_id: None,
+                                    udp_key_hex: None,
+                                };
+                                let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                                continue;
+                            }
+
+                            self.mic_host.stop_stream();
+                            let stream_id = OsRng.next_u32();
+                            let udp_key = derive_udp_key(&session_key, stream_id);
+                            match UdpDataChannel::bind(udp_key, stream_id).await {
+                                Ok((channel, endpoint)) => {
+                                    match self.mic_host.start_stream(channel, tokio::runtime::Handle::current()) {
+                                        Ok(driver_name) => {
+                                            let state = ControlMessage::MicState {
+                                                allowed: true,
+                                                active: true,
+                                                detail: Some(driver_name),
+                                                udp_port: Some(endpoint.local_port),
+                                                stream_id: Some(endpoint.stream_id),
+                                                udp_key_hex: Some(hex::encode(udp_key)),
+                                            };
+                                            let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                                        }
+                                        Err(error) => {
+                                            let state = ControlMessage::MicState {
+                                                allowed: true,
+                                                active: false,
+                                                detail: Some(error),
+                                                udp_port: None,
+                                                stream_id: None,
+                                                udp_key_hex: None,
+                                            };
+                                            let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                                        }
+                                    }
+                                }
+                                Err(error) => {
+                                    tracing::warn!(%error, "Unable to bind microphone UDP stream");
+                                    let state = ControlMessage::MicState {
+                                        allowed: true,
+                                        active: false,
+                                        detail: Some("Unable to open microphone stream".into()),
+                                        udp_port: None,
+                                        stream_id: None,
+                                        udp_key_hex: None,
+                                    };
+                                    let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                                }
+                            }
+                        }
                         ControlMessage::Disconnect { .. } => break,
                         _ => {}
                     }
@@ -879,7 +1066,11 @@ impl SessionManager {
             }
         }
 
+        if let Some(task) = speaker_hello_task.take() {
+            task.abort();
+        }
         self.speaker_host.stop_stream();
+        self.mic_host.stop_stream();
 
         let mut guard = self.inner.write().expect("session lock poisoned");
         let still_same = matches!(

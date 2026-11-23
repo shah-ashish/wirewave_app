@@ -25,6 +25,7 @@ dependencies {
     implementation(project(":core:session"))
     implementation(project(":core:stream"))
     implementation(project(":features:speaker"))
+    implementation(project(":features:mic"))
 
     implementation(platform("androidx.compose:compose-bom:2024.02.01"))
     implementation("androidx.compose.ui:ui")

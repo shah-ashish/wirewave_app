@@ -2,6 +2,7 @@ use wirewave_core_config::APP_CONFIG;
 use wirewave_core_session::ActiveSession;
 use wirewave_core_transport::TransportKind;
 use wirewave_feature_speaker::SpeakerTileState;
+use wirewave_feature_mic::MicTileState;
 
 #[derive(Debug, Clone, Copy)]
 pub struct ServiceTileSpec {
@@ -15,16 +16,22 @@ pub struct ConnectedViewState {
     pub device_name: String,
     pub transport: TransportKind,
     pub speaker: SpeakerTileState,
+    pub mic: MicTileState,
     pub services: [ServiceTileSpec; 5],
 }
 
 impl ConnectedViewState {
-    pub fn from_active(active: &ActiveSession, speaker: SpeakerTileState) -> Self {
+    pub fn from_active(
+        active: &ActiveSession,
+        speaker: SpeakerTileState,
+        mic: MicTileState,
+    ) -> Self {
         let a = APP_CONFIG.assets;
         Self {
             device_name: active.device_name.clone(),
             transport: active.transport,
             speaker,
+            mic,
             services: [
                 ServiceTileSpec {
                     name: "Speaker",

@@ -52,5 +52,8 @@ project(":core:stream").projectDir = file("../../core/stream/android")
 include(":features:speaker")
 project(":features:speaker").projectDir = file("../../features/speaker/android")
 
+include(":features:mic")
+project(":features:mic").projectDir = file("../../features/mic/android")
+
 include(":app")
 project(":app").projectDir = file("app")

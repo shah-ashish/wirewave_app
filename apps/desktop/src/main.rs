@@ -17,6 +17,7 @@ use wirewave_core_session::SessionManager;
 use wirewave_feature_connection::HomeScreen;
 use wirewave_feature_settings::SettingsScreen;
 use wirewave_feature_speaker::SpeakerService;
+use wirewave_feature_mic::MicService;
 
 /// Result of single-instance mutual exclusion check.
 #[cfg(windows)]
@@ -116,7 +117,13 @@ fn main() {
         IdentityKeypair::generate()
     });
     let speaker_service = std::sync::Arc::new(SpeakerService::new());
-    let session = SessionManager::new(identity.clone(), keypair, speaker_service.clone());
+    let mic_service = std::sync::Arc::new(MicService::new());
+    let session = SessionManager::new(
+        identity.clone(),
+        keypair,
+        speaker_service.clone(),
+        mic_service.clone(),
+    );
     if compatibility.is_supported() {
         session.start_background_services();
     }
@@ -141,10 +148,16 @@ fn main() {
             let id = identity.clone();
             let shared_session = session.clone();
             let shared_speaker = speaker_service.clone();
+            let shared_mic = mic_service.clone();
 
             cx.open_window(options, move |_window, cx| {
                 let home = cx
-                    .new(|cx| HomeScreen::new(shared_session.clone(), shared_speaker.clone(), cx));
+                    .new(|cx| HomeScreen::new(
+                        shared_session.clone(),
+                        shared_speaker.clone(),
+                        shared_mic.clone(),
+                        cx,
+                    ));
                 let settings =
                     cx.new(|_| SettingsScreen::new(&id, compat.clone(), shared_session.clone()));
                 cx.new(|_| AppShell::new(shared_session.clone(), home, settings))

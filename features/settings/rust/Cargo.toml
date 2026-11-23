@@ -14,3 +14,4 @@ wirewave-core-identity = { workspace = true }
 wirewave-core-session = { workspace = true }
 wirewave-core-transport = { workspace = true }
 wirewave-core-updater = { workspace = true }
+wirewave-feature-mic = { workspace = true }

@@ -13,11 +13,12 @@ members = [
     "features/connection/rust",
     "core/stream/rust",
     "features/speaker/rust",
+    "features/mic/rust",
     "apps/desktop",
 ]
 
 [workspace.package]
-version = "1.1.5"
+version = "1.1.6"
 edition = "2024"
 authors = ["WireWave Team"]
 license = "MIT"
@@ -66,6 +67,7 @@ wirewave-feature-settings = { path = "features/settings/rust" }
 wirewave-feature-connection = { path = "features/connection/rust" }
 wirewave-core-stream = { path = "core/stream/rust" }
 wirewave-feature-speaker = { path = "features/speaker/rust" }
+wirewave-feature-mic = { path = "features/mic/rust" }
 
 [profile.release]
 opt-level = 3

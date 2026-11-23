@@ -12,6 +12,8 @@ pub struct ConnectionPreferences {
     pub keep_alive_in_background: bool,
     #[serde(default = "default_true")]
     pub speaker_service_allowed: bool,
+    #[serde(default = "default_true")]
+    pub mic_service_allowed: bool,
 }
 
 const fn default_true() -> bool {
@@ -24,6 +26,7 @@ impl Default for ConnectionPreferences {
             priority: TransportPriority::from_config(APP_CONFIG.connection.default_priority),
             keep_alive_in_background: true,
             speaker_service_allowed: true,
+            mic_service_allowed: true,
         }
     }
 }
@@ -72,6 +75,11 @@ impl PreferencesStore {
         self.persist();
     }
 
+    pub fn set_mic_service_allowed(&mut self, allowed: bool) {
+        self.prefs.mic_service_allowed = allowed;
+        self.persist();
+    }
+
     fn persist(&self) {
         if let Some(parent) = self.path.parent() {
             let _ = fs::create_dir_all(parent);
@@ -92,6 +100,7 @@ mod tests {
     #[test]
     fn speaker_service_is_allowed_by_default() {
         assert!(ConnectionPreferences::default().speaker_service_allowed);
+        assert!(ConnectionPreferences::default().mic_service_allowed);
     }
 
     #[test]
@@ -104,5 +113,6 @@ mod tests {
         assert_eq!(prefs.priority, TransportPriority::BluetoothFirst);
         assert!(!prefs.keep_alive_in_background);
         assert!(prefs.speaker_service_allowed);
+        assert!(prefs.mic_service_allowed);
     }
 }

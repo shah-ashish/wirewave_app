@@ -67,4 +67,6 @@ pub enum StreamError {
     EncryptFailed,
     #[error("UDP authentication or decryption failed")]
     DecryptFailed,
+    #[error("authenticated UDP peer has not been established")]
+    PeerNotEstablished,
 }
