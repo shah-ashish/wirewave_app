@@ -15,8 +15,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.DesktopWindows
@@ -56,6 +58,7 @@ fun DiscoveryScreen(
             .fillMaxSize()
             .background(WireWaveTheme.Colors.bgCanvas)
             .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = WireWaveTheme.Metrics.spacingMd, vertical = WireWaveTheme.Metrics.spacingSm)
     ) {
         Row(
@@ -133,7 +136,7 @@ private fun EmptyComputersView(
         }
         Spacer(modifier = Modifier.height(20.dp))
         Text(
-            text = "No Computer Found",
+            text = "No computers found",
             color = WireWaveTheme.Colors.textPrimary,
             fontSize = 22.sp,
             fontWeight = FontWeight.Bold
@@ -157,7 +160,7 @@ private fun EmptyComputersView(
                 .height(48.dp)
         ) {
             Text(
-                text = if (isScanning) "Scanning..." else "Scan Again",
+                text = if (isScanning) "Scanning..." else "Scan again",
                 color = WireWaveTheme.Colors.textPrimary,
                 fontSize = WireWaveTheme.Typography.body,
                 fontWeight = FontWeight.Medium
@@ -180,7 +183,7 @@ private fun NearbyComputersView(
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(
-            text = "Nearby Computers",
+            text = "Nearby computers",
             color = WireWaveTheme.Colors.textPrimary,
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold

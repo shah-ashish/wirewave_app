@@ -140,10 +140,30 @@ pub fn render_connected_view<V: Render + CanDisconnect>(
                 .child("Disconnect"),
         );
 
-    let mut services_row = div().flex().flex_row().gap(px(12.0)).w_full();
-    for spec in state.services {
-        services_row = services_row.child(service_placeholder_tile(spec));
-    }
+    let row_top = div()
+        .flex()
+        .flex_row()
+        .gap(px(12.0))
+        .w_full()
+        .child(service_placeholder_tile(state.services[0]))
+        .child(service_placeholder_tile(state.services[1]))
+        .child(service_placeholder_tile(state.services[2]));
+
+    let row_bottom = div()
+        .flex()
+        .flex_row()
+        .gap(px(12.0))
+        .w_full()
+        .child(service_placeholder_tile(state.services[3]))
+        .child(service_placeholder_tile(state.services[4]));
+
+    let services_grid = div()
+        .flex()
+        .flex_col()
+        .gap(px(12.0))
+        .w_full()
+        .child(row_top)
+        .child(row_bottom);
 
     div()
         .size_full()
@@ -162,9 +182,9 @@ pub fn render_connected_view<V: Render + CanDisconnect>(
                         .text_size(px(THEME.typography.font_section))
                         .font_weight(FontWeight::MEDIUM)
                         .text_color(rgba(c.text_section))
-                        .child("ACTIVE SERVICES"),
+                        .child("Active services"),
                 )
-                .child(services_row),
+                .child(services_grid),
         )
 }
 
@@ -174,6 +194,7 @@ fn service_placeholder_tile(spec: ServiceTileSpec) -> Div {
 
     div()
         .flex_1()
+        .min_w(px(0.0))
         .bg(rgba(c.bg_card))
         .border_1()
         .border_color(rgba(c.border_subtle))

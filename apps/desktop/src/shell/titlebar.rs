@@ -1,8 +1,9 @@
 use gpui::{div, img, prelude::*, px, rgba, svg, Div, FontWeight, WindowControlArea};
 use wirewave_core_config::{APP_CONFIG, THEME};
+use wirewave_core_session::SharedSession;
 
 /// Custom dark Windows 11 titlebar.
-pub fn render_titlebar() -> Div {
+pub fn render_titlebar(session: SharedSession) -> Div {
     let c = THEME.colors;
     let m = THEME.metrics;
 
@@ -25,6 +26,9 @@ pub fn render_titlebar() -> Div {
                 .child(APP_CONFIG.app_name),
         );
 
+    let min_session = session.clone();
+    let close_session = session.clone();
+
     let controls = div()
         .flex()
         .flex_row()
@@ -36,7 +40,12 @@ pub fn render_titlebar() -> Div {
             14.0,
             WindowControlArea::Min,
             false,
-            |window| window.minimize_window(),
+            move |window| {
+                if !min_session.snapshot().preferences.keep_alive_in_background {
+                    min_session.disconnect_active();
+                }
+                window.minimize_window();
+            },
         ))
         .child(window_control_button(
             "win-max",
@@ -52,7 +61,10 @@ pub fn render_titlebar() -> Div {
             14.0,
             WindowControlArea::Close,
             true,
-            |window| window.remove_window(),
+            move |window| {
+                close_session.disconnect_active();
+                window.remove_window();
+            },
         ));
 
     div()

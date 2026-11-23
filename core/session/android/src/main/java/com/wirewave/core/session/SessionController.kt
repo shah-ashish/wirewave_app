@@ -106,6 +106,12 @@ class SessionController(
         _state.update { ClientSessionState.Disconnected() }
     }
 
+    fun disconnectForBackground() {
+        cancelActiveJob()
+        onForegroundStateChanged(false, null)
+        _state.update { ClientSessionState.Disconnected("Disconnected because keep alive in background is turned off.") }
+    }
+
     private fun cancelActiveJob() {
         otpInputDeferred?.cancel()
         otpInputDeferred = null
@@ -253,6 +259,7 @@ class SessionController(
         if (!WireWaveCrypto.verifyPeerSignature(desktopPub, transcript, desktopSig)) {
             return failSession("Desktop authenticity check failed.")
         }
+        store.saveTrustedDesktop(TrustedDesktop(desktopId, desktopName, desktopPub))
 
         val sessionKey = WireWaveCrypto.deriveSessionKey(shared, transcript)
         enterEncryptedLoop(

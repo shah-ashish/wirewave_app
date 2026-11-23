@@ -53,7 +53,7 @@ impl Render for AppShell {
             .size_full()
             .bg(rgba(c.bg_canvas))
             .text_color(rgba(c.text_primary))
-            .child(render_titlebar())
+            .child(render_titlebar(self.session.clone()))
             .child(
                 div()
                     .flex()

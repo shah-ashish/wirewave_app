@@ -32,7 +32,7 @@ fun CompatibilityDialog(report: CompatibilityReport) {
                 verticalArrangement = Arrangement.spacedBy(WireWaveTheme.Metrics.spacingSm)
             ) {
                 Text(
-                    text = "Device Not Compatible",
+                    text = "Device not compatible",
                     color = WireWaveTheme.Colors.statusErrFg,
                     fontSize = WireWaveTheme.Typography.title,
                     fontWeight = FontWeight.SemiBold

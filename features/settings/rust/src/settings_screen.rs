@@ -104,7 +104,7 @@ impl Render for SettingsScreen {
 
         let content = div()
             .w_full()
-            .max_w(px(m.content_max_width))
+            .max_w(px(m.content_max_width + 120.0))
             .flex()
             .flex_col()
             .gap(px(m.spacing_lg))

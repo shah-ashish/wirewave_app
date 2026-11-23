@@ -48,6 +48,25 @@ class TrustAndPrefsStore(context: Context) {
 
     fun lastDesktopId(): String? = prefs.getString(KEY_LAST_DESKTOP_ID, null)
 
+    fun forgetDesktop(desktopId: String) {
+        prefs.edit()
+            .remove("$TRUST_PREFIX${desktopId}_name")
+            .remove("$TRUST_PREFIX${desktopId}_pub")
+            .apply()
+        if (lastDesktopId() == desktopId) {
+            prefs.edit().remove(KEY_LAST_DESKTOP_ID).apply()
+        }
+    }
+
+    fun listTrustedDesktops(): List<TrustedDesktop> {
+        return prefs.all.keys
+            .filter { it.startsWith(TRUST_PREFIX) && it.endsWith("_pub") }
+            .mapNotNull { key ->
+                val desktopId = key.removePrefix(TRUST_PREFIX).removeSuffix("_pub")
+                getTrustedDesktop(desktopId)
+            }
+    }
+
     fun setExplicitDisconnect(disconnected: Boolean) {
         prefs.edit().putBoolean(KEY_EXPLICIT_DISCONNECT, disconnected).apply()
     }

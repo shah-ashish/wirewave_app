@@ -76,7 +76,7 @@ fun UpdateSection(
                 percent = phase.percent
             )
             is UpdatePhase.ReadyToInstall -> DetailFooter(
-                text = "Version ${phase.versionName} verified. Tap Install to apply.",
+                text = "Version ${phase.versionName} verified. Select Install to update.",
                 color = WireWaveTheme.Colors.statusOkFg
             )
             is UpdatePhase.Failed -> DetailFooter(

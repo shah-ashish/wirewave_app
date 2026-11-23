@@ -76,7 +76,7 @@ pub fn render_update_section<V: Render + HasUpdateController>(
         }
         UpdatePhase::ReadyToInstall { version_name, .. } => {
             card = card.child(detail_banner(
-                format!("Version {version_name} downloaded and verified. Click Install to apply."),
+                format!("Version {version_name} downloaded and verified. Select Install to update."),
                 c.status_ok_fg,
             ));
         }

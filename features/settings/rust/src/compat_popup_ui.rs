@@ -24,7 +24,7 @@ pub fn render_incompatibility_popup(report: &CompatibilityReport) -> Option<Div>
                 .text_size(px(t.font_title))
                 .font_weight(FontWeight::SEMIBOLD)
                 .text_color(rgba(c.status_err_fg))
-                .child("Device Not Compatible"),
+                .child("Device not compatible"),
         )
         .child(
             div()

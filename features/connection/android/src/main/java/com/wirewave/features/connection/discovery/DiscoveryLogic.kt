@@ -32,7 +32,11 @@ class DiscoveryController(
 
             if (allowAutoConnect && session.store.connectionPrefs.value.autoConnect && !session.store.wasExplicitlyDisconnected()) {
                 val lastId = session.store.lastDesktopId()
-                val match = found.firstOrNull { it.desktopId == lastId && !it.busy }
+                val trusted = if (lastId != null) session.store.getTrustedDesktop(lastId) else null
+                val match = found.firstOrNull { host ->
+                    if (host.busy) return@firstOrNull false
+                    host.desktopId == lastId || (trusted != null && host.pcName.equals(trusted.pcName, ignoreCase = true))
+                }
                 if (match != null) {
                     session.connect(match)
                 }

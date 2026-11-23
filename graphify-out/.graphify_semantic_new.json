@@ -1,0 +1,1083 @@
+{
+  "nodes": [
+    {
+      "id": "readme_wirewave_app",
+      "label": "WireWave App",
+      "file_type": "document",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\README.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_1_overview",
+      "label": "WireWave Stage 1 Guide",
+      "file_type": "document",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_1_os_compatibility_check",
+      "label": "OS Compatibility Check",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_1_persistent_device_id",
+      "label": "Persistent Unique Device ID",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_1_three_distinct_ids",
+      "label": "Three Distinct IDs Architecture",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_1_single_source_of_truth",
+      "label": "Build-Time Single Source of Truth",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_1_in_app_updater",
+      "label": "In-App Updater Mechanism",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_1_settings_screen",
+      "label": "Settings Screen Architecture",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_2_overview",
+      "label": "WireWave Stage 2 Connection & Security",
+      "file_type": "document",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_2_app_to_app_exclusivity",
+      "label": "App-to-App Exclusivity Framing",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_2_active_lock_priority",
+      "label": "1-to-1 Active Lock & Priority Preemption",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_2_otp_pairing",
+      "label": "6-Digit OTP Pairing & Verification",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_2_trust_agreement",
+      "label": "Persistent Trust Agreement",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_2_session_persistence",
+      "label": "Background Session Persistence",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "stage_2_active_services_placeholder",
+      "label": "Active Services UI Placeholders",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agent_coding_rules",
+      "label": "AI Coding Rules for WireWave",
+      "file_type": "document",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\agent.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agent_architecture_boundaries",
+      "label": "Vertical-Slice Monorepo Boundaries",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\agent.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agent_single_sources_of_truth",
+      "label": "Single Sources of Truth Rule",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\agent.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "agent_security_privacy_standards",
+      "label": "Coding, Security & Privacy Standards",
+      "file_type": "rationale",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\agent.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "developer_contributor_guide",
+      "label": "WireWave Contributor Guide",
+      "file_type": "document",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\developer.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "developer_monorepo_layout",
+      "label": "Monorepo Repository Layout",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\developer.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "developer_feature_slice_workflow",
+      "label": "Feature Slice Addition Workflow",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\developer.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "developer_build_test_workflow",
+      "label": "Build and Test Workflow",
+      "file_type": "concept",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\developer.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_wirewave_mark_logo",
+      "label": "WireWave Brand Mark Logo",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\wirewave_mark.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_bluetooth_icon",
+      "label": "Bluetooth Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\bluetooth.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_camera_icon",
+      "label": "Camera Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\camera.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_check_icon",
+      "label": "Checkmark Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\check.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_home_icon",
+      "label": "Home Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\home.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_keyboard_icon",
+      "label": "Keyboard Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\keyboard.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_mic_icon",
+      "label": "Microphone Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\mic.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_monitor_icon",
+      "label": "Monitor Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\monitor.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_mouse_icon",
+      "label": "Mouse Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\mouse.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_phone_icon",
+      "label": "Phone Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\phone.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_settings_icon",
+      "label": "Settings Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\settings.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_speaker_icon",
+      "label": "Speaker Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\speaker.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_wifi_icon",
+      "label": "Wi-Fi Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\wifi.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_window_close_icon",
+      "label": "Window Close Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\window-close.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_window_maximize_icon",
+      "label": "Window Maximize Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\window-maximize.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "assets_brand_icons_window_minimize_icon",
+      "label": "Window Minimize Icon",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\assets\\brand\\icons\\window-minimize.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_android_app_src_main_res_drawable_app_icon_app_icon",
+      "label": "WireWave Android App Icon Mascot",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\drawable\\app_icon.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_android_app_src_main_res_mipmap_hdpi_ic_launcher_ic_launcher",
+      "label": "Launcher Icon HDPI",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_android_app_src_main_res_mipmap_hdpi_ic_launcher_round_ic_launcher_round",
+      "label": "Launcher Round Icon HDPI",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher_round.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_android_app_src_main_res_mipmap_mdpi_ic_launcher_ic_launcher",
+      "label": "Launcher Icon MDPI",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_android_app_src_main_res_mipmap_mdpi_ic_launcher_round_ic_launcher_round",
+      "label": "Launcher Round Icon MDPI",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher_round.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_android_app_src_main_res_mipmap_xhdpi_ic_launcher_ic_launcher",
+      "label": "Launcher Icon XHDPI",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_android_app_src_main_res_mipmap_xhdpi_ic_launcher_round_ic_launcher_round",
+      "label": "Launcher Round Icon XHDPI",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher_round.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_android_app_src_main_res_mipmap_xxhdpi_ic_launcher_ic_launcher",
+      "label": "Launcher Icon XXHDPI",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_android_app_src_main_res_mipmap_xxhdpi_ic_launcher_round_ic_launcher_round",
+      "label": "Launcher Round Icon XXHDPI",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher_round.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_android_app_src_main_res_mipmap_xxxhdpi_ic_launcher_ic_launcher",
+      "label": "Launcher Icon XXXHDPI",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    },
+    {
+      "id": "apps_android_app_src_main_res_mipmap_xxxhdpi_ic_launcher_round_ic_launcher_round",
+      "label": "Launcher Round Icon XXXHDPI",
+      "file_type": "image",
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher_round.png",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null
+    }
+  ],
+  "edges": [
+    {
+      "source": "readme_wirewave_app",
+      "target": "stage_1_overview",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "readme_wirewave_app",
+      "target": "stage_2_overview",
+      "relation": "conceptually_related_to",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\README.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_1_overview",
+      "target": "stage_1_os_compatibility_check",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_1_overview",
+      "target": "stage_1_persistent_device_id",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_1_overview",
+      "target": "stage_1_three_distinct_ids",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_1_overview",
+      "target": "stage_1_single_source_of_truth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_1_overview",
+      "target": "stage_1_in_app_updater",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_1_overview",
+      "target": "stage_1_settings_screen",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_1_overview",
+      "target": "assets_brand_wirewave_mark_logo",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_1_overview",
+      "target": "assets_brand_icons_settings_icon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_1_overview",
+      "target": "assets_brand_icons_monitor_icon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_1_overview",
+      "target": "assets_brand_icons_check_icon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_overview",
+      "target": "stage_1_overview",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_overview",
+      "target": "stage_2_app_to_app_exclusivity",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_overview",
+      "target": "stage_2_active_lock_priority",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_overview",
+      "target": "stage_2_otp_pairing",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_overview",
+      "target": "stage_2_trust_agreement",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_overview",
+      "target": "stage_2_session_persistence",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_overview",
+      "target": "stage_2_active_services_placeholder",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_trust_agreement",
+      "target": "stage_1_persistent_device_id",
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_app_to_app_exclusivity",
+      "target": "assets_brand_icons_wifi_icon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_app_to_app_exclusivity",
+      "target": "assets_brand_icons_bluetooth_icon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_active_services_placeholder",
+      "target": "assets_brand_icons_speaker_icon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_active_services_placeholder",
+      "target": "assets_brand_icons_mic_icon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_active_services_placeholder",
+      "target": "assets_brand_icons_keyboard_icon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_active_services_placeholder",
+      "target": "assets_brand_icons_mouse_icon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "stage_2_active_services_placeholder",
+      "target": "assets_brand_icons_camera_icon",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_coding_rules",
+      "target": "agent_architecture_boundaries",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\agent.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_coding_rules",
+      "target": "agent_single_sources_of_truth",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\agent.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_coding_rules",
+      "target": "agent_security_privacy_standards",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\agent.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "developer_contributor_guide",
+      "target": "developer_monorepo_layout",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\developer.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "developer_contributor_guide",
+      "target": "developer_feature_slice_workflow",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\developer.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "developer_contributor_guide",
+      "target": "developer_build_test_workflow",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\developer.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "developer_monorepo_layout",
+      "target": "agent_architecture_boundaries",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\developer.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_single_sources_of_truth",
+      "target": "stage_1_single_source_of_truth",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\agent.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "agent_security_privacy_standards",
+      "target": "stage_2_app_to_app_exclusivity",
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\agent.md",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_android_app_src_main_res_mipmap_hdpi_ic_launcher_ic_launcher",
+      "target": "apps_android_app_src_main_res_drawable_app_icon_app_icon",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_android_app_src_main_res_mipmap_hdpi_ic_launcher_round_ic_launcher_round",
+      "target": "apps_android_app_src_main_res_drawable_app_icon_app_icon",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-hdpi\\ic_launcher_round.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_android_app_src_main_res_mipmap_mdpi_ic_launcher_ic_launcher",
+      "target": "apps_android_app_src_main_res_drawable_app_icon_app_icon",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_android_app_src_main_res_mipmap_mdpi_ic_launcher_round_ic_launcher_round",
+      "target": "apps_android_app_src_main_res_drawable_app_icon_app_icon",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-mdpi\\ic_launcher_round.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_android_app_src_main_res_mipmap_xhdpi_ic_launcher_ic_launcher",
+      "target": "apps_android_app_src_main_res_drawable_app_icon_app_icon",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_android_app_src_main_res_mipmap_xhdpi_ic_launcher_round_ic_launcher_round",
+      "target": "apps_android_app_src_main_res_drawable_app_icon_app_icon",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-xhdpi\\ic_launcher_round.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_android_app_src_main_res_mipmap_xxhdpi_ic_launcher_ic_launcher",
+      "target": "apps_android_app_src_main_res_drawable_app_icon_app_icon",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_android_app_src_main_res_mipmap_xxhdpi_ic_launcher_round_ic_launcher_round",
+      "target": "apps_android_app_src_main_res_drawable_app_icon_app_icon",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-xxhdpi\\ic_launcher_round.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_android_app_src_main_res_mipmap_xxxhdpi_ic_launcher_ic_launcher",
+      "target": "apps_android_app_src_main_res_drawable_app_icon_app_icon",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher.png",
+      "source_location": null,
+      "weight": 1.0
+    },
+    {
+      "source": "apps_android_app_src_main_res_mipmap_xxxhdpi_ic_launcher_round_ic_launcher_round",
+      "target": "apps_android_app_src_main_res_drawable_app_icon_app_icon",
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\mipmap-xxxhdpi\\ic_launcher_round.png",
+      "source_location": null,
+      "weight": 1.0
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "active_services_placeholders_group",
+      "label": "Stage 2 Active Hardware Services UI Placeholders",
+      "nodes": [
+        "stage_2_active_services_placeholder",
+        "assets_brand_icons_speaker_icon",
+        "assets_brand_icons_mic_icon",
+        "assets_brand_icons_keyboard_icon",
+        "assets_brand_icons_mouse_icon",
+        "assets_brand_icons_camera_icon"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_2.md"
+    },
+    {
+      "id": "window_chrome_controls_group",
+      "label": "Desktop Window Titlebar Chrome Controls",
+      "nodes": [
+        "assets_brand_icons_window_minimize_icon",
+        "assets_brand_icons_window_maximize_icon",
+        "assets_brand_icons_window_close_icon"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\STAGE_1.md"
+    },
+    {
+      "id": "single_source_of_truth_governance",
+      "label": "Single Source of Truth Monorepo Governance",
+      "nodes": [
+        "stage_1_single_source_of_truth",
+        "agent_single_sources_of_truth",
+        "developer_monorepo_layout"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\agent.md"
+    },
+    {
+      "id": "apps_android_app_launcher_icon_density_suite",
+      "label": "Android Launcher Icon Density Suite",
+      "nodes": [
+        "apps_android_app_src_main_res_drawable_app_icon_app_icon",
+        "apps_android_app_src_main_res_mipmap_hdpi_ic_launcher_ic_launcher",
+        "apps_android_app_src_main_res_mipmap_hdpi_ic_launcher_round_ic_launcher_round",
+        "apps_android_app_src_main_res_mipmap_mdpi_ic_launcher_ic_launcher",
+        "apps_android_app_src_main_res_mipmap_mdpi_ic_launcher_round_ic_launcher_round",
+        "apps_android_app_src_main_res_mipmap_xhdpi_ic_launcher_ic_launcher",
+        "apps_android_app_src_main_res_mipmap_xhdpi_ic_launcher_round_ic_launcher_round",
+        "apps_android_app_src_main_res_mipmap_xxhdpi_ic_launcher_ic_launcher",
+        "apps_android_app_src_main_res_mipmap_xxhdpi_ic_launcher_round_ic_launcher_round",
+        "apps_android_app_src_main_res_mipmap_xxxhdpi_ic_launcher_ic_launcher",
+        "apps_android_app_src_main_res_mipmap_xxxhdpi_ic_launcher_round_ic_launcher_round"
+      ],
+      "relation": "implement",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "C:\\Users\\ashis\\Downloads\\wirewave-stage2\\wirewave-stage2\\apps\\android\\app\\src\\main\\res\\drawable\\app_icon.png"
+    }
+  ],
+  "input_tokens": 0,
+  "output_tokens": 0
+}

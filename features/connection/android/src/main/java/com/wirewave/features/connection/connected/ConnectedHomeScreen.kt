@@ -1,5 +1,6 @@
 package com.wirewave.features.connection.connected
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,8 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.Mic
@@ -33,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -62,6 +66,7 @@ fun ConnectedHomeScreen(
     brandMark: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val circles = listOf(
         ServiceCircleSpec("Speaker", Icons.Rounded.VolumeUp),
         ServiceCircleSpec("Mic", Icons.Rounded.Mic),
@@ -77,6 +82,7 @@ fun ConnectedHomeScreen(
             .fillMaxSize()
             .background(WireWaveTheme.Colors.bgCanvas)
             .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
             .padding(horizontal = WireWaveTheme.Metrics.spacingMd, vertical = WireWaveTheme.Metrics.spacingSm),
         verticalArrangement = Arrangement.spacedBy(22.dp)
     ) {
@@ -150,7 +156,7 @@ fun ConnectedHomeScreen(
 
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             Text(
-                text = "AUDIO & INPUT · COMING SOON",
+                text = "Audio & input · Coming soon",
                 color = WireWaveTheme.Colors.textSection,
                 fontSize = WireWaveTheme.Typography.section,
                 fontWeight = FontWeight.Medium
@@ -160,7 +166,15 @@ fun ConnectedHomeScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 circles.forEach { spec ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(role = Role.Button) {
+                                Toast.makeText(context, "${spec.label} will be available in Stage 3", Toast.LENGTH_SHORT).show()
+                            }
+                            .padding(4.dp)
+                    ) {
                         Box(
                             modifier = Modifier
                                 .size(76.dp)
@@ -192,7 +206,7 @@ fun ConnectedHomeScreen(
 
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text(
-                text = "USE PHONE AS",
+                text = "Use phone as",
                 color = WireWaveTheme.Colors.textSection,
                 fontSize = WireWaveTheme.Typography.section,
                 fontWeight = FontWeight.Medium
@@ -212,6 +226,9 @@ fun ConnectedHomeScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable(role = Role.Button) {
+                                Toast.makeText(context, "${row.title} will be available in Stage 3", Toast.LENGTH_SHORT).show()
+                            }
                             .padding(horizontal = 16.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween

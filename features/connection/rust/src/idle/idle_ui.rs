@@ -52,7 +52,7 @@ pub fn render_idle_view(state: &IdleViewState) -> Div {
                 .text_size(px(11.0))
                 .font_weight(FontWeight::MEDIUM)
                 .text_color(rgba(c.text_section))
-                .child("LISTENING ON"),
+                .child("Listening on"),
         )
         .child(
             div()

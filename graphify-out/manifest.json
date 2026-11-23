@@ -1,0 +1,824 @@
+{
+  ".github/workflows/ci.yml": {
+    "mtime": 1795365972.7124636,
+    "seen": 1795412212.9096892,
+    "ast_hash": "fd762228c2bb1509ce65e0eae7ac0b3e",
+    "semantic_hash": "fd762228c2bb1509ce65e0eae7ac0b3e"
+  },
+  ".github/workflows/release.yml": {
+    "mtime": 1795374690.044123,
+    "seen": 1795412212.9096892,
+    "ast_hash": "945741afc31c04937008e00913efca3e",
+    "semantic_hash": "945741afc31c04937008e00913efca3e"
+  },
+  "Cargo.toml": {
+    "mtime": 1795382001.1232185,
+    "seen": 1795412212.9096892,
+    "ast_hash": "22abcc14c38542e7b17eeeba19a94b66",
+    "semantic_hash": "22abcc14c38542e7b17eeeba19a94b66"
+  },
+  "apps/android/app/build.gradle.kts": {
+    "mtime": 1795365972.7966113,
+    "seen": 1795412212.9096892,
+    "ast_hash": "54b9ecb07df21a53041c4712f8d539d3",
+    "semantic_hash": "54b9ecb07df21a53041c4712f8d539d3"
+  },
+  "apps/android/app/src/main/java/com/wirewave/android/AppContainer.kt": {
+    "mtime": 1795370740.979302,
+    "seen": 1795412212.9096892,
+    "ast_hash": "c50880f95b1816afa54b47663df428af",
+    "semantic_hash": "c50880f95b1816afa54b47663df428af"
+  },
+  "apps/android/app/src/main/java/com/wirewave/android/MainActivity.kt": {
+    "mtime": 1795419170.8272898,
+    "seen": 1795419942.431796,
+    "ast_hash": "8fad0ba41007595776d8d4c5d40ca6bf",
+    "semantic_hash": "8fad0ba41007595776d8d4c5d40ca6bf"
+  },
+  "apps/android/app/src/main/java/com/wirewave/android/WireWaveApp.kt": {
+    "mtime": 1795365972.8987713,
+    "seen": 1795412212.9096892,
+    "ast_hash": "d5c15fd43b639caa8cc096de2d3cb8d9",
+    "semantic_hash": "d5c15fd43b639caa8cc096de2d3cb8d9"
+  },
+  "apps/android/app/src/main/java/com/wirewave/android/service/WireWaveConnectionService.kt": {
+    "mtime": 1795365972.920689,
+    "seen": 1795412212.9096892,
+    "ast_hash": "11de23e96a8deac98a87de4850d64dd5",
+    "semantic_hash": "11de23e96a8deac98a87de4850d64dd5"
+  },
+  "apps/android/build.gradle.kts": {
+    "mtime": 1795365972.7452466,
+    "seen": 1795412212.9096892,
+    "ast_hash": "4f72b748f87128fed7779447a02d7b6a",
+    "semantic_hash": "4f72b748f87128fed7779447a02d7b6a"
+  },
+  "apps/android/gradlew": {
+    "mtime": 1795365972.7584565,
+    "seen": 1795412212.9096892,
+    "ast_hash": "0f777a49c656b3aba9ed0634916e8b4c",
+    "semantic_hash": "0f777a49c656b3aba9ed0634916e8b4c"
+  },
+  "apps/android/settings.gradle.kts": {
+    "mtime": 1795365972.779089,
+    "seen": 1795412212.9096892,
+    "ast_hash": "21b385bf847bbc89f308a1624513641a",
+    "semantic_hash": "21b385bf847bbc89f308a1624513641a"
+  },
+  "apps/desktop/Cargo.toml": {
+    "mtime": 1795380258.524031,
+    "seen": 1795412212.9096892,
+    "ast_hash": "7096c2b55793407dd1be9961f401013f",
+    "semantic_hash": "7096c2b55793407dd1be9961f401013f"
+  },
+  "apps/desktop/build.rs": {
+    "mtime": 1795365973.1839132,
+    "seen": 1795412212.9096892,
+    "ast_hash": "05ecff3f1b0945c605421c1b48a61e97",
+    "semantic_hash": "05ecff3f1b0945c605421c1b48a61e97"
+  },
+  "apps/desktop/src/assets.rs": {
+    "mtime": 1795372684.1693652,
+    "seen": 1795412212.9096892,
+    "ast_hash": "822c08103f8c26b477f883de1c89879d",
+    "semantic_hash": "822c08103f8c26b477f883de1c89879d"
+  },
+  "apps/desktop/src/main.rs": {
+    "mtime": 1795380243.2575004,
+    "seen": 1795412212.9096892,
+    "ast_hash": "3713295e6caa069d7e6bcf70f0914ace",
+    "semantic_hash": "3713295e6caa069d7e6bcf70f0914ace"
+  },
+  "apps/desktop/src/shell/app_shell.rs": {
+    "mtime": 1795416934.3495533,
+    "seen": 1795419942.431796,
+    "ast_hash": "f149f74677fb982daa846166b0682236",
+    "semantic_hash": "f149f74677fb982daa846166b0682236"
+  },
+  "apps/desktop/src/shell/mod.rs": {
+    "mtime": 1795365973.270219,
+    "seen": 1795412212.9096892,
+    "ast_hash": "714704c03f246b0a52c70dc448e3b62d",
+    "semantic_hash": "714704c03f246b0a52c70dc448e3b62d"
+  },
+  "apps/desktop/src/shell/sidebar.rs": {
+    "mtime": 1795372358.297107,
+    "seen": 1795412212.9096892,
+    "ast_hash": "d793ce7db8de70bb08df09e8128f55d4",
+    "semantic_hash": "d793ce7db8de70bb08df09e8128f55d4"
+  },
+  "apps/desktop/src/shell/titlebar.rs": {
+    "mtime": 1795416920.6071463,
+    "seen": 1795419942.431796,
+    "ast_hash": "3f186f7e6ffdddf229f17e971c0ffee2",
+    "semantic_hash": "3f186f7e6ffdddf229f17e971c0ffee2"
+  },
+  "config/theme.json": {
+    "mtime": 1795365973.545273,
+    "seen": 1795412212.9096892,
+    "ast_hash": "2bdfb78afa1cf2d9bdb446f7740db95a",
+    "semantic_hash": "2bdfb78afa1cf2d9bdb446f7740db95a"
+  },
+  "config/wirewave.config.json": {
+    "mtime": 1795365973.5581658,
+    "seen": 1795412212.9096892,
+    "ast_hash": "ccc4d2d1c98cff67d164e13124c6ed1f",
+    "semantic_hash": "ccc4d2d1c98cff67d164e13124c6ed1f"
+  },
+  "core/compatibility/android/build.gradle.kts": {
+    "mtime": 1795365973.5914345,
+    "seen": 1795412212.9096892,
+    "ast_hash": "79ea62c13166cf4f6a8c57ac51aca20a",
+    "semantic_hash": "79ea62c13166cf4f6a8c57ac51aca20a"
+  },
+  "core/compatibility/android/src/main/java/com/wirewave/core/compatibility/CompatibilityChecker.kt": {
+    "mtime": 1795365973.680942,
+    "seen": 1795412212.9096892,
+    "ast_hash": "a3e0242e1bf97a626340bc5d81725205",
+    "semantic_hash": "a3e0242e1bf97a626340bc5d81725205"
+  },
+  "core/compatibility/android/src/test/java/com/wirewave/core/compatibility/CompatibilityCheckerTest.kt": {
+    "mtime": 1795365973.7632065,
+    "seen": 1795412212.9096892,
+    "ast_hash": "b9c70a1ba5b63d423f602f9d7a5e6de6",
+    "semantic_hash": "b9c70a1ba5b63d423f602f9d7a5e6de6"
+  },
+  "core/compatibility/rust/Cargo.toml": {
+    "mtime": 1795365973.789946,
+    "seen": 1795412212.9096892,
+    "ast_hash": "3823ea54ff26b6d40257c19175c38ea5",
+    "semantic_hash": "3823ea54ff26b6d40257c19175c38ea5"
+  },
+  "core/compatibility/rust/src/lib.rs": {
+    "mtime": 1795365973.8147376,
+    "seen": 1795412212.9096892,
+    "ast_hash": "b6f98fa8044f795b15a8dc776eb265c4",
+    "semantic_hash": "b6f98fa8044f795b15a8dc776eb265c4"
+  },
+  "core/config/android/build.gradle.kts": {
+    "mtime": 1795365973.843877,
+    "seen": 1795412212.9096892,
+    "ast_hash": "96bf69e3c44fe14d16654be484af6cec",
+    "semantic_hash": "96bf69e3c44fe14d16654be484af6cec"
+  },
+  "core/config/android/src/main/java/com/wirewave/core/config/AppConfig.kt": {
+    "mtime": 1795365973.9322,
+    "seen": 1795412212.9096892,
+    "ast_hash": "9162ee85f848d9dc2c3a766feb53a74a",
+    "semantic_hash": "9162ee85f848d9dc2c3a766feb53a74a"
+  },
+  "core/config/android/src/main/java/com/wirewave/core/config/WireWaveTheme.kt": {
+    "mtime": 1795365973.9443626,
+    "seen": 1795412212.9096892,
+    "ast_hash": "412ab9855a90c8cd1f592279f8dce3a2",
+    "semantic_hash": "412ab9855a90c8cd1f592279f8dce3a2"
+  },
+  "core/config/rust/Cargo.toml": {
+    "mtime": 1795365973.9720743,
+    "seen": 1795412212.9096892,
+    "ast_hash": "12829db588cc27478648eafef4d64b86",
+    "semantic_hash": "12829db588cc27478648eafef4d64b86"
+  },
+  "core/config/rust/build.rs": {
+    "mtime": 1795365973.9876556,
+    "seen": 1795412212.9096892,
+    "ast_hash": "0bc3bf5f2a16d245b9ea6a30947637c4",
+    "semantic_hash": "0bc3bf5f2a16d245b9ea6a30947637c4"
+  },
+  "core/config/rust/src/lib.rs": {
+    "mtime": 1795382001.3594863,
+    "seen": 1795412212.9096892,
+    "ast_hash": "4f1f3ac3c15f9b0c17193c3019295b24",
+    "semantic_hash": "4f1f3ac3c15f9b0c17193c3019295b24"
+  },
+  "core/config/rust/src/theme.rs": {
+    "mtime": 1795365974.0327096,
+    "seen": 1795412212.9096892,
+    "ast_hash": "1cab5d2ee97223fd95e35e2604902fce",
+    "semantic_hash": "1cab5d2ee97223fd95e35e2604902fce"
+  },
+  "core/crypto/android/build.gradle.kts": {
+    "mtime": 1795365974.0706263,
+    "seen": 1795412212.9096892,
+    "ast_hash": "839b13a44b14d305721d498bec3ef610",
+    "semantic_hash": "839b13a44b14d305721d498bec3ef610"
+  },
+  "core/crypto/android/src/main/java/com/wirewave/core/crypto/WireWaveCrypto.kt": {
+    "mtime": 1795371516.9921439,
+    "seen": 1795412212.9096892,
+    "ast_hash": "633a77bade44824ff819b832545d39e9",
+    "semantic_hash": "633a77bade44824ff819b832545d39e9"
+  },
+  "core/crypto/android/src/test/java/com/wirewave/core/crypto/WireWaveCryptoTest.kt": {
+    "mtime": 1795370028.8513196,
+    "seen": 1795412212.9096892,
+    "ast_hash": "d598b8e7e5adebc184c0a4a636b3e3c3",
+    "semantic_hash": "d598b8e7e5adebc184c0a4a636b3e3c3"
+  },
+  "core/crypto/rust/Cargo.toml": {
+    "mtime": 1795365974.2701936,
+    "seen": 1795412212.9096892,
+    "ast_hash": "0949e989b7017d4700e657c19723463a",
+    "semantic_hash": "0949e989b7017d4700e657c19723463a"
+  },
+  "core/crypto/rust/src/cipher.rs": {
+    "mtime": 1795371454.8929768,
+    "seen": 1795412212.9096892,
+    "ast_hash": "827b8b24dba7c0dd3bb039b3044c3d45",
+    "semantic_hash": "827b8b24dba7c0dd3bb039b3044c3d45"
+  },
+  "core/crypto/rust/src/keys.rs": {
+    "mtime": 1795368777.516302,
+    "seen": 1795412212.9096892,
+    "ast_hash": "a0203d306d76831dbc58f6b2e6453188",
+    "semantic_hash": "a0203d306d76831dbc58f6b2e6453188"
+  },
+  "core/crypto/rust/src/lib.rs": {
+    "mtime": 1795371455.501961,
+    "seen": 1795412212.9096892,
+    "ast_hash": "07de7f10ae88b6e64a73afb2eb04e39f",
+    "semantic_hash": "07de7f10ae88b6e64a73afb2eb04e39f"
+  },
+  "core/crypto/rust/src/otp.rs": {
+    "mtime": 1795365974.3512747,
+    "seen": 1795412212.9096892,
+    "ast_hash": "e54816a1f32aa1628e080d4d70b808ab",
+    "semantic_hash": "e54816a1f32aa1628e080d4d70b808ab"
+  },
+  "core/discovery/android/build.gradle.kts": {
+    "mtime": 1795365974.3872473,
+    "seen": 1795412212.9096892,
+    "ast_hash": "e95e3a6ff46eb7f8fc898af2e0e72a8e",
+    "semantic_hash": "e95e3a6ff46eb7f8fc898af2e0e72a8e"
+  },
+  "core/discovery/android/src/main/java/com/wirewave/core/discovery/HostScanner.kt": {
+    "mtime": 1795414685.2929692,
+    "seen": 1795419942.431796,
+    "ast_hash": "8168db2a160d0e16c48fcafc3d33538c",
+    "semantic_hash": "8168db2a160d0e16c48fcafc3d33538c"
+  },
+  "core/discovery/rust/Cargo.toml": {
+    "mtime": 1795371456.6813912,
+    "seen": 1795412212.9096892,
+    "ast_hash": "eeda72c05b7f5156aeea355e294cdbfe",
+    "semantic_hash": "eeda72c05b7f5156aeea355e294cdbfe"
+  },
+  "core/discovery/rust/src/lib.rs": {
+    "mtime": 1795371456.0869281,
+    "seen": 1795412212.9096892,
+    "ast_hash": "489a01eb53644041254d29dcc0c5c9df",
+    "semantic_hash": "489a01eb53644041254d29dcc0c5c9df"
+  },
+  "core/identity/android/build.gradle.kts": {
+    "mtime": 1795365974.5733898,
+    "seen": 1795412212.9096892,
+    "ast_hash": "1e7ea3acb795968650292c1591f7565b",
+    "semantic_hash": "1e7ea3acb795968650292c1591f7565b"
+  },
+  "core/identity/android/src/main/java/com/wirewave/core/identity/DeviceIdentityStore.kt": {
+    "mtime": 1795365974.665591,
+    "seen": 1795412212.9096892,
+    "ast_hash": "55a047d4412125cc452e38cff11b7ecc",
+    "semantic_hash": "55a047d4412125cc452e38cff11b7ecc"
+  },
+  "core/identity/android/src/test/java/com/wirewave/core/identity/DeviceIdentityStoreTest.kt": {
+    "mtime": 1795365974.7584722,
+    "seen": 1795412212.9096892,
+    "ast_hash": "07db614c19adba468503696be2ef6e3c",
+    "semantic_hash": "07db614c19adba468503696be2ef6e3c"
+  },
+  "core/identity/rust/Cargo.toml": {
+    "mtime": 1795365974.7830284,
+    "seen": 1795412212.9096892,
+    "ast_hash": "3dd2fee810c951c561b550bbf22daaa4",
+    "semantic_hash": "3dd2fee810c951c561b550bbf22daaa4"
+  },
+  "core/identity/rust/src/lib.rs": {
+    "mtime": 1795365974.8098717,
+    "seen": 1795412212.9096892,
+    "ast_hash": "c9f8a7e1f7adb30de639a927cd4ae71d",
+    "semantic_hash": "c9f8a7e1f7adb30de639a927cd4ae71d"
+  },
+  "core/session/android/build.gradle.kts": {
+    "mtime": 1795365974.8398726,
+    "seen": 1795412212.9096892,
+    "ast_hash": "e25d43625e0b7bc9530644abb11365c0",
+    "semantic_hash": "e25d43625e0b7bc9530644abb11365c0"
+  },
+  "core/session/android/src/main/java/com/wirewave/core/session/SessionController.kt": {
+    "mtime": 1795416849.7481422,
+    "seen": 1795419942.431796,
+    "ast_hash": "28d26255c3e7ce4e0f58b919a6bd7395",
+    "semantic_hash": "28d26255c3e7ce4e0f58b919a6bd7395"
+  },
+  "core/session/android/src/main/java/com/wirewave/core/session/TrustAndPrefsStore.kt": {
+    "mtime": 1795419102.2077065,
+    "seen": 1795419942.431796,
+    "ast_hash": "8ce8fd61f2165456b5424d81df1affaa",
+    "semantic_hash": "8ce8fd61f2165456b5424d81df1affaa"
+  },
+  "core/session/rust/Cargo.toml": {
+    "mtime": 1795370702.986789,
+    "seen": 1795412212.9096892,
+    "ast_hash": "d6c8d8ed21e7d8bcc246950f496c6495",
+    "semantic_hash": "d6c8d8ed21e7d8bcc246950f496c6495"
+  },
+  "core/session/rust/src/bluetooth_listener.rs": {
+    "mtime": 1795370704.4538436,
+    "seen": 1795412212.9096892,
+    "ast_hash": "42ed5c8999a88ed04296013281f9540e",
+    "semantic_hash": "42ed5c8999a88ed04296013281f9540e"
+  },
+  "core/session/rust/src/lib.rs": {
+    "mtime": 1795370703.6989481,
+    "seen": 1795412212.9096892,
+    "ast_hash": "bb021b5cefb8f5c6fe34162e59332ae1",
+    "semantic_hash": "bb021b5cefb8f5c6fe34162e59332ae1"
+  },
+  "core/session/rust/src/session_manager.rs": {
+    "mtime": 1795371481.3982873,
+    "seen": 1795412212.9096892,
+    "ast_hash": "85d8b69002c5d3cff6642cb182b2ad31",
+    "semantic_hash": "85d8b69002c5d3cff6642cb182b2ad31"
+  },
+  "core/session/rust/src/settings_store.rs": {
+    "mtime": 1795365975.020262,
+    "seen": 1795412212.9096892,
+    "ast_hash": "b41a9154f196f7f4269673dfe03a43fd",
+    "semantic_hash": "b41a9154f196f7f4269673dfe03a43fd"
+  },
+  "core/session/rust/src/trust_store.rs": {
+    "mtime": 1795365975.0395534,
+    "seen": 1795412212.9096892,
+    "ast_hash": "2f51e3d22c5f2b5028b470014facd62d",
+    "semantic_hash": "2f51e3d22c5f2b5028b470014facd62d"
+  },
+  "core/transport/android/build.gradle.kts": {
+    "mtime": 1795365975.0757666,
+    "seen": 1795412212.9096892,
+    "ast_hash": "160dc1996da30a03c8b732bb46b4dcb0",
+    "semantic_hash": "160dc1996da30a03c8b732bb46b4dcb0"
+  },
+  "core/transport/android/src/main/java/com/wirewave/core/transport/TransportModels.kt": {
+    "mtime": 1795365975.1925592,
+    "seen": 1795412212.9096892,
+    "ast_hash": "b9d40e7fabdae94fc6d5b1794eb8cb7d",
+    "semantic_hash": "b9d40e7fabdae94fc6d5b1794eb8cb7d"
+  },
+  "core/transport/rust/Cargo.toml": {
+    "mtime": 1795365975.2218933,
+    "seen": 1795412212.9096892,
+    "ast_hash": "a41ef9cc7f019dba56d7066ec244c006",
+    "semantic_hash": "a41ef9cc7f019dba56d7066ec244c006"
+  },
+  "core/transport/rust/src/lib.rs": {
+    "mtime": 1795365975.248679,
+    "seen": 1795412212.9096892,
+    "ast_hash": "d6676962dc3bef0e186ecb61e26a653f",
+    "semantic_hash": "d6676962dc3bef0e186ecb61e26a653f"
+  },
+  "core/updater/android/build.gradle.kts": {
+    "mtime": 1795365975.2863922,
+    "seen": 1795412212.9096892,
+    "ast_hash": "9e32123dd8e0c55dc7a83e73520637a2",
+    "semantic_hash": "9e32123dd8e0c55dc7a83e73520637a2"
+  },
+  "core/updater/android/src/main/java/com/wirewave/core/updater/ApkInstaller.kt": {
+    "mtime": 1795365975.3900223,
+    "seen": 1795412212.9096892,
+    "ast_hash": "78735be8c5b313822ad33d290cb1248d",
+    "semantic_hash": "78735be8c5b313822ad33d290cb1248d"
+  },
+  "core/updater/android/src/main/java/com/wirewave/core/updater/UpdateDownloader.kt": {
+    "mtime": 1795365975.4062345,
+    "seen": 1795412212.9096892,
+    "ast_hash": "3921fd353a92f8bcb3969a991d6334f7",
+    "semantic_hash": "3921fd353a92f8bcb3969a991d6334f7"
+  },
+  "core/updater/android/src/main/java/com/wirewave/core/updater/UpdateManifest.kt": {
+    "mtime": 1795365975.415758,
+    "seen": 1795412212.9096892,
+    "ast_hash": "98a5cee1988827d6a83e9d7b5f2ae15f",
+    "semantic_hash": "98a5cee1988827d6a83e9d7b5f2ae15f"
+  },
+  "core/updater/android/src/test/java/com/wirewave/core/updater/UpdateManifestClientTest.kt": {
+    "mtime": 1795365975.5216472,
+    "seen": 1795412212.9096892,
+    "ast_hash": "a013f3014961c9eb0d16f499e75aee7a",
+    "semantic_hash": "a013f3014961c9eb0d16f499e75aee7a"
+  },
+  "core/updater/rust/Cargo.toml": {
+    "mtime": 1795365975.547413,
+    "seen": 1795412212.9096892,
+    "ast_hash": "f51b1bdb28060021a2ad11036f9343e1",
+    "semantic_hash": "f51b1bdb28060021a2ad11036f9343e1"
+  },
+  "core/updater/rust/src/downloader.rs": {
+    "mtime": 1795365975.5740676,
+    "seen": 1795412212.9096892,
+    "ast_hash": "1b1f8301439f202d6616cd8fd7801939",
+    "semantic_hash": "1b1f8301439f202d6616cd8fd7801939"
+  },
+  "core/updater/rust/src/installer.rs": {
+    "mtime": 1795379068.2978883,
+    "seen": 1795412212.9096892,
+    "ast_hash": "6745bf277abe4b433d956398ebdfbb3b",
+    "semantic_hash": "6745bf277abe4b433d956398ebdfbb3b"
+  },
+  "core/updater/rust/src/lib.rs": {
+    "mtime": 1795365975.6079774,
+    "seen": 1795412212.9096892,
+    "ast_hash": "f1e9453ed00e8d72758acd30f9b5a9ae",
+    "semantic_hash": "f1e9453ed00e8d72758acd30f9b5a9ae"
+  },
+  "core/updater/rust/src/manifest.rs": {
+    "mtime": 1795365975.6249723,
+    "seen": 1795412212.9096892,
+    "ast_hash": "37fa9903e06d0a370d500a035b6ac51c",
+    "semantic_hash": "37fa9903e06d0a370d500a035b6ac51c"
+  },
+  "features/connection/android/build.gradle.kts": {
+    "mtime": 1795365975.6714811,
+    "seen": 1795412212.9096892,
+    "ast_hash": "c16d36a14bb651d4d6136b6ab1f9c2e6",
+    "semantic_hash": "c16d36a14bb651d4d6136b6ab1f9c2e6"
+  },
+  "features/connection/android/src/main/java/com/wirewave/features/connection/connected/ConnectedHomeScreen.kt": {
+    "mtime": 1795419059.8815057,
+    "seen": 1795419942.431796,
+    "ast_hash": "0ab47bf22c08aa62edc9d776033766ce",
+    "semantic_hash": "0ab47bf22c08aa62edc9d776033766ce"
+  },
+  "features/connection/android/src/main/java/com/wirewave/features/connection/discovery/DiscoveryLogic.kt": {
+    "mtime": 1795415682.5468886,
+    "seen": 1795419942.431796,
+    "ast_hash": "17ca9d2363adb12fad5042243ef0587f",
+    "semantic_hash": "17ca9d2363adb12fad5042243ef0587f"
+  },
+  "features/connection/android/src/main/java/com/wirewave/features/connection/discovery/DiscoveryScreen.kt": {
+    "mtime": 1795419080.22898,
+    "seen": 1795419942.431796,
+    "ast_hash": "c4e74dcaa41d48270e6be895c15ffbbc",
+    "semantic_hash": "c4e74dcaa41d48270e6be895c15ffbbc"
+  },
+  "features/connection/android/src/main/java/com/wirewave/features/connection/pairing/PairingCodeScreen.kt": {
+    "mtime": 1795365975.8747072,
+    "seen": 1795412212.9096892,
+    "ast_hash": "5f6d624d68caeecb4d2b9616312faf91",
+    "semantic_hash": "5f6d624d68caeecb4d2b9616312faf91"
+  },
+  "features/connection/rust/Cargo.toml": {
+    "mtime": 1795365975.9068153,
+    "seen": 1795412212.9096892,
+    "ast_hash": "d9b0b892ebf16d7753ef481de3ea3ecd",
+    "semantic_hash": "d9b0b892ebf16d7753ef481de3ea3ecd"
+  },
+  "features/connection/rust/src/connected/connected_logic.rs": {
+    "mtime": 1795365975.9840457,
+    "seen": 1795412212.9096892,
+    "ast_hash": "3f0477ba9d82a3813907142633cca508",
+    "semantic_hash": "3f0477ba9d82a3813907142633cca508"
+  },
+  "features/connection/rust/src/connected/connected_ui.rs": {
+    "mtime": 1795418902.415548,
+    "seen": 1795419942.431796,
+    "ast_hash": "ce4cafca3a8b4ff45af7349aaa41a19c",
+    "semantic_hash": "ce4cafca3a8b4ff45af7349aaa41a19c"
+  },
+  "features/connection/rust/src/connected/mod.rs": {
+    "mtime": 1795365976.024755,
+    "seen": 1795412212.9096892,
+    "ast_hash": "2cdedba69eac3cfc11f4ae0aef46c6fa",
+    "semantic_hash": "2cdedba69eac3cfc11f4ae0aef46c6fa"
+  },
+  "features/connection/rust/src/home_screen.rs": {
+    "mtime": 1795365975.93371,
+    "seen": 1795412212.9096892,
+    "ast_hash": "f221f2cca31e6ca5afe7f829397facb3",
+    "semantic_hash": "f221f2cca31e6ca5afe7f829397facb3"
+  },
+  "features/connection/rust/src/idle/idle_logic.rs": {
+    "mtime": 1795365976.054103,
+    "seen": 1795412212.9096892,
+    "ast_hash": "421d4ea4aff877c546b457023c54581b",
+    "semantic_hash": "421d4ea4aff877c546b457023c54581b"
+  },
+  "features/connection/rust/src/idle/idle_ui.rs": {
+    "mtime": 1795418710.1999795,
+    "seen": 1795419942.431796,
+    "ast_hash": "bbb8655bda7cb65597d6aa71991d6ad5",
+    "semantic_hash": "bbb8655bda7cb65597d6aa71991d6ad5"
+  },
+  "features/connection/rust/src/idle/mod.rs": {
+    "mtime": 1795365976.0942614,
+    "seen": 1795412212.9096892,
+    "ast_hash": "9c0c65475e85e8e179dae9ee26864bb5",
+    "semantic_hash": "9c0c65475e85e8e179dae9ee26864bb5"
+  },
+  "features/connection/rust/src/lib.rs": {
+    "mtime": 1795365975.9541028,
+    "seen": 1795412212.9096892,
+    "ast_hash": "4366d20d42231f4fd6cbd0b826e1e658",
+    "semantic_hash": "4366d20d42231f4fd6cbd0b826e1e658"
+  },
+  "features/connection/rust/src/pairing/mod.rs": {
+    "mtime": 1795365976.1261804,
+    "seen": 1795412212.9096892,
+    "ast_hash": "f79c2e6c6e23b9cfa2ca290b3ab44c07",
+    "semantic_hash": "f79c2e6c6e23b9cfa2ca290b3ab44c07"
+  },
+  "features/connection/rust/src/pairing/pairing_logic.rs": {
+    "mtime": 1795365976.1426413,
+    "seen": 1795412212.9096892,
+    "ast_hash": "5fcae4a96af5e36458d960d2e890a3b9",
+    "semantic_hash": "5fcae4a96af5e36458d960d2e890a3b9"
+  },
+  "features/connection/rust/src/pairing/pairing_ui.rs": {
+    "mtime": 1795418710.2727518,
+    "seen": 1795419942.431796,
+    "ast_hash": "ba3053647f9524e2befd026f664a803d",
+    "semantic_hash": "ba3053647f9524e2befd026f664a803d"
+  },
+  "features/settings/android/build.gradle.kts": {
+    "mtime": 1795365976.1919508,
+    "seen": 1795412212.9096892,
+    "ast_hash": "93bc453e46b314fa7e221af9a3cb559b",
+    "semantic_hash": "93bc453e46b314fa7e221af9a3cb559b"
+  },
+  "features/settings/android/src/main/java/com/wirewave/features/settings/CompatibilityDialog.kt": {
+    "mtime": 1795418710.345584,
+    "seen": 1795419942.431796,
+    "ast_hash": "e618b2ed093fc844d066a48f2d616215",
+    "semantic_hash": "e618b2ed093fc844d066a48f2d616215"
+  },
+  "features/settings/android/src/main/java/com/wirewave/features/settings/SettingsScreen.kt": {
+    "mtime": 1795419143.186895,
+    "seen": 1795419942.431796,
+    "ast_hash": "857283e45442f6601b1778c31ed61167",
+    "semantic_hash": "857283e45442f6601b1778c31ed61167"
+  },
+  "features/settings/android/src/main/java/com/wirewave/features/settings/about/AboutLogic.kt": {
+    "mtime": 1795365976.3490913,
+    "seen": 1795412212.9096892,
+    "ast_hash": "0e5ee02e7d7a8630a239e951400c49ff",
+    "semantic_hash": "0e5ee02e7d7a8630a239e951400c49ff"
+  },
+  "features/settings/android/src/main/java/com/wirewave/features/settings/about/AboutSection.kt": {
+    "mtime": 1795365976.3626096,
+    "seen": 1795412212.9096892,
+    "ast_hash": "9e9c6e386103d1af222b20bafc570963",
+    "semantic_hash": "9e9c6e386103d1af222b20bafc570963"
+  },
+  "features/settings/android/src/main/java/com/wirewave/features/settings/components/SettingsPrimitives.kt": {
+    "mtime": 1795365976.3944583,
+    "seen": 1795412212.9096892,
+    "ast_hash": "8d1915d1e709a4e8f8b772213e5c44b9",
+    "semantic_hash": "8d1915d1e709a4e8f8b772213e5c44b9"
+  },
+  "features/settings/android/src/main/java/com/wirewave/features/settings/connection/ConnectionSection.kt": {
+    "mtime": 1795365976.4283338,
+    "seen": 1795412212.9096892,
+    "ast_hash": "ee0ec7413de418156908b18a390f7a90",
+    "semantic_hash": "ee0ec7413de418156908b18a390f7a90"
+  },
+  "features/settings/android/src/main/java/com/wirewave/features/settings/update/UpdateLogic.kt": {
+    "mtime": 1795418726.4773526,
+    "seen": 1795419942.431796,
+    "ast_hash": "44af7db99b460a63d0232a553cf667c9",
+    "semantic_hash": "44af7db99b460a63d0232a553cf667c9"
+  },
+  "features/settings/android/src/main/java/com/wirewave/features/settings/update/UpdateSection.kt": {
+    "mtime": 1795418726.5577781,
+    "seen": 1795419942.431796,
+    "ast_hash": "4b1b62a6b186c17d2d22995de76daf74",
+    "semantic_hash": "4b1b62a6b186c17d2d22995de76daf74"
+  },
+  "features/settings/rust/Cargo.toml": {
+    "mtime": 1795365976.5077057,
+    "seen": 1795412212.9096892,
+    "ast_hash": "d3cbd50b2da24a7be9c106546d65ecf9",
+    "semantic_hash": "d3cbd50b2da24a7be9c106546d65ecf9"
+  },
+  "features/settings/rust/src/about/about_logic.rs": {
+    "mtime": 1795365976.622672,
+    "seen": 1795412212.9096892,
+    "ast_hash": "075d07330a4092f1e6f63065db318ad4",
+    "semantic_hash": "075d07330a4092f1e6f63065db318ad4"
+  },
+  "features/settings/rust/src/about/about_ui.rs": {
+    "mtime": 1795365976.6424246,
+    "seen": 1795412212.9096892,
+    "ast_hash": "8cd449c406fb76e71f9ce8fd311d4356",
+    "semantic_hash": "8cd449c406fb76e71f9ce8fd311d4356"
+  },
+  "features/settings/rust/src/about/mod.rs": {
+    "mtime": 1795365976.6626918,
+    "seen": 1795412212.9096892,
+    "ast_hash": "487b3fda4f86d02f91ba96ee50d297b0",
+    "semantic_hash": "487b3fda4f86d02f91ba96ee50d297b0"
+  },
+  "features/settings/rust/src/compat_popup_ui.rs": {
+    "mtime": 1795418710.057027,
+    "seen": 1795419942.431796,
+    "ast_hash": "a5c1ea5168b7b406d13777e4b9a8ff7b",
+    "semantic_hash": "a5c1ea5168b7b406d13777e4b9a8ff7b"
+  },
+  "features/settings/rust/src/components.rs": {
+    "mtime": 1795365976.5531354,
+    "seen": 1795412212.9096892,
+    "ast_hash": "6a8c9766136b7c60b1b016c1bf0d087d",
+    "semantic_hash": "6a8c9766136b7c60b1b016c1bf0d087d"
+  },
+  "features/settings/rust/src/connection/connection_logic.rs": {
+    "mtime": 1795365976.6926398,
+    "seen": 1795412212.9096892,
+    "ast_hash": "34ce7c3f2cb18686d2882517703fb3da",
+    "semantic_hash": "34ce7c3f2cb18686d2882517703fb3da"
+  },
+  "features/settings/rust/src/connection/connection_ui.rs": {
+    "mtime": 1795365976.7101815,
+    "seen": 1795412212.9096892,
+    "ast_hash": "f11e1879991ebb4b2bb51d18f1f847ed",
+    "semantic_hash": "f11e1879991ebb4b2bb51d18f1f847ed"
+  },
+  "features/settings/rust/src/connection/mod.rs": {
+    "mtime": 1795365976.7304466,
+    "seen": 1795412212.9096892,
+    "ast_hash": "69a91efde43c7cf13d3426b8116241fb",
+    "semantic_hash": "69a91efde43c7cf13d3426b8116241fb"
+  },
+  "features/settings/rust/src/devices/devices_logic.rs": {
+    "mtime": 1795365976.7611408,
+    "seen": 1795412212.9096892,
+    "ast_hash": "1303d5460c2a6874cd9c85da14425575",
+    "semantic_hash": "1303d5460c2a6874cd9c85da14425575"
+  },
+  "features/settings/rust/src/devices/devices_ui.rs": {
+    "mtime": 1795365976.778005,
+    "seen": 1795412212.9096892,
+    "ast_hash": "a6413ded02006bb432161ef4c8b20b88",
+    "semantic_hash": "a6413ded02006bb432161ef4c8b20b88"
+  },
+  "features/settings/rust/src/devices/mod.rs": {
+    "mtime": 1795365976.7955966,
+    "seen": 1795412212.9096892,
+    "ast_hash": "0f5b9ab51051047d05b2ce69bf0ef5c6",
+    "semantic_hash": "0f5b9ab51051047d05b2ce69bf0ef5c6"
+  },
+  "features/settings/rust/src/lib.rs": {
+    "mtime": 1795365976.5721643,
+    "seen": 1795412212.9107306,
+    "ast_hash": "1abf9a75b65daec86f6c1c2818253fb6",
+    "semantic_hash": "1abf9a75b65daec86f6c1c2818253fb6"
+  },
+  "features/settings/rust/src/settings_screen.rs": {
+    "mtime": 1795418923.216469,
+    "seen": 1795419942.431796,
+    "ast_hash": "a9acd1183fde9d37be8bfe14963daee7",
+    "semantic_hash": "a9acd1183fde9d37be8bfe14963daee7"
+  },
+  "features/settings/rust/src/update/mod.rs": {
+    "mtime": 1795365976.8286233,
+    "seen": 1795412212.9107306,
+    "ast_hash": "435c42d5b91fc80d2502802bb9f9d8fc",
+    "semantic_hash": "435c42d5b91fc80d2502802bb9f9d8fc"
+  },
+  "features/settings/rust/src/update/update_logic.rs": {
+    "mtime": 1795418710.1238043,
+    "seen": 1795419942.431796,
+    "ast_hash": "3a79cec025935b81eb7170fb0a6a9cf5",
+    "semantic_hash": "3a79cec025935b81eb7170fb0a6a9cf5"
+  },
+  "features/settings/rust/src/update/update_ui.rs": {
+    "mtime": 1795418710.1623032,
+    "seen": 1795419942.431796,
+    "ast_hash": "f8826beec432ccac2ceb87d0d93c71b6",
+    "semantic_hash": "f8826beec432ccac2ceb87d0d93c71b6"
+  },
+  "version.json": {
+    "mtime": 1795382001.0373192,
+    "seen": 1795412212.9107306,
+    "ast_hash": "31fe3d5360f7da86cdbb6f4e1635aae6",
+    "semantic_hash": "31fe3d5360f7da86cdbb6f4e1635aae6"
+  },
+  "README.md": {
+    "mtime": 1795365972.64292,
+    "seen": 1795412212.9107306,
+    "ast_hash": "727f487a4e434557461e2010fb447dbf",
+    "semantic_hash": "727f487a4e434557461e2010fb447dbf"
+  },
+  "STAGE_1.md": {
+    "mtime": 1795365972.6528327,
+    "seen": 1795412212.9107306,
+    "ast_hash": "73d3de7deb618aea96967e4e6eea5dbf",
+    "semantic_hash": "73d3de7deb618aea96967e4e6eea5dbf"
+  },
+  "STAGE_2.md": {
+    "mtime": 1795365972.664026,
+    "seen": 1795412212.9107306,
+    "ast_hash": "6842d6c3c559e4f2942449af388df9ab",
+    "semantic_hash": "6842d6c3c559e4f2942449af388df9ab"
+  },
+  "agent.md": {
+    "mtime": 1795365972.6741087,
+    "seen": 1795412212.9107306,
+    "ast_hash": "e5e210a597b97e56201be213fcdc0354",
+    "semantic_hash": "e5e210a597b97e56201be213fcdc0354"
+  },
+  "developer.md": {
+    "mtime": 1795365972.6835225,
+    "seen": 1795412212.9107306,
+    "ast_hash": "8d3c76601c3981be3f82136f57d37301",
+    "semantic_hash": "8d3c76601c3981be3f82136f57d37301"
+  },
+  "assets/brand/icons/bluetooth.svg": {
+    "mtime": 1795365973.3487892,
+    "seen": 1795412212.9107306,
+    "ast_hash": "f07ed03e07af3ce00de20b5960bf97f5",
+    "semantic_hash": "f07ed03e07af3ce00de20b5960bf97f5"
+  },
+  "assets/brand/icons/camera.svg": {
+    "mtime": 1795365973.3597763,
+    "seen": 1795412212.9107306,
+    "ast_hash": "d995605599bfbcac85cb358e010c341f",
+    "semantic_hash": "d995605599bfbcac85cb358e010c341f"
+  },
+  "assets/brand/icons/check.svg": {
+    "mtime": 1795365973.3720245,
+    "seen": 1795412212.9107306,
+    "ast_hash": "389229d89eac5ea97f3068810b10e5ed",
+    "semantic_hash": "389229d89eac5ea97f3068810b10e5ed"
+  },
+  "assets/brand/icons/home.svg": {
+    "mtime": 1795365973.3831751,
+    "seen": 1795412212.9107306,
+    "ast_hash": "2373fc74c5fac986faaf8d945f8dfb6b",
+    "semantic_hash": "2373fc74c5fac986faaf8d945f8dfb6b"
+  },
+  "assets/brand/icons/keyboard.svg": {
+    "mtime": 1795365973.3916779,
+    "seen": 1795412212.9107306,
+    "ast_hash": "0b43370becbcf8184452cfa91129a492",
+    "semantic_hash": "0b43370becbcf8184452cfa91129a492"
+  },
+  "assets/brand/icons/mic.svg": {
+    "mtime": 1795365973.407227,
+    "seen": 1795412212.9107306,
+    "ast_hash": "706592c635ebef37d350cf641ed51b0e",
+    "semantic_hash": "706592c635ebef37d350cf641ed51b0e"
+  },
+  "assets/brand/icons/monitor.svg": {
+    "mtime": 1795365973.419462,
+    "seen": 1795412212.9107306,
+    "ast_hash": "a1f9ca9923c4a6ac77c990e2282c5dda",
+    "semantic_hash": "a1f9ca9923c4a6ac77c990e2282c5dda"
+  },
+  "assets/brand/icons/mouse.svg": {
+    "mtime": 1795365973.4313097,
+    "seen": 1795412212.9107306,
+    "ast_hash": "e5a16b615affb8a79e052a2b30df2126",
+    "semantic_hash": "e5a16b615affb8a79e052a2b30df2126"
+  },
+  "assets/brand/icons/phone.svg": {
+    "mtime": 1795365973.44612,
+    "seen": 1795412212.9107306,
+    "ast_hash": "3fb41bc4381f67e6dd1213ff66a4e208",
+    "semantic_hash": "3fb41bc4381f67e6dd1213ff66a4e208"
+  },
+  "assets/brand/icons/settings.svg": {
+    "mtime": 1795365973.4831164,
+    "seen": 1795412212.9107306,
+    "ast_hash": "a347bcb474f1e872ac57ddc22dde0447",
+    "semantic_hash": "a347bcb474f1e872ac57ddc22dde0447"
+  },
+  "assets/brand/icons/speaker.svg": {
+    "mtime": 1795365973.5048203,
+    "seen": 1795412212.9107306,
+    "ast_hash": "1c19804cc320ebc14e3025e8a8b96404",
+    "semantic_hash": "1c19804cc320ebc14e3025e8a8b96404"
+  },
+  "assets/brand/icons/wifi.svg": {
+    "mtime": 1795365973.522426,
+    "seen": 1795412212.9107306,
+    "ast_hash": "8661d04cc6f0db6d00a02dc204f77a84",
+    "semantic_hash": "8661d04cc6f0db6d00a02dc204f77a84"
+  },
+  "assets/brand/icons/window-close.svg": {
+    "mtime": 1795372683.5109124,
+    "seen": 1795412212.9107306,
+    "ast_hash": "52c6967ebaeac84572b01de1bc9b8115",
+    "semantic_hash": "52c6967ebaeac84572b01de1bc9b8115"
+  },
+  "assets/brand/icons/window-maximize.svg": {
+    "mtime": 1795372682.8386378,
+    "seen": 1795412212.9107306,
+    "ast_hash": "a7938945cedfdc473122dd271e9bf2e4",
+    "semantic_hash": "a7938945cedfdc473122dd271e9bf2e4"
+  },
+  "assets/brand/icons/window-minimize.svg": {
+    "mtime": 1795372682.140319,
+    "seen": 1795412212.9107306,
+    "ast_hash": "0a4e72a357b0401d356324a7493d2a0a",
+    "semantic_hash": "0a4e72a357b0401d356324a7493d2a0a"
+  }
+}

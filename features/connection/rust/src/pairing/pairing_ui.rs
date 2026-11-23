@@ -36,7 +36,7 @@ pub fn render_pairing_modal<V: Render + CanCancelPairing>(
                 .text_size(px(11.0))
                 .font_weight(FontWeight::MEDIUM)
                 .text_color(rgba(c.text_section))
-                .child("PAIRING REQUEST"),
+                .child("Pairing request"),
         )
         .child(
             div()
@@ -133,7 +133,7 @@ pub fn render_pairing_modal<V: Render + CanCancelPairing>(
                     view.on_cancel_pairing();
                     cx.notify();
                 }))
-                .child("Cancel"),
+                .child("Cancel pairing"),
         );
 
     div()

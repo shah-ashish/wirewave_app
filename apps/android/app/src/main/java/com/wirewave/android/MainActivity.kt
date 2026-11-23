@@ -16,12 +16,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.wirewave.android.service.WireWaveConnectionService
 import com.wirewave.core.session.ClientSessionState
 import com.wirewave.features.connection.connected.ConnectedHomeScreen
 import com.wirewave.features.connection.discovery.DiscoveryScreen
@@ -74,6 +77,27 @@ class MainActivity : ComponentActivity() {
             Manifest.permission.BLUETOOTH_CONNECT
         ) == PackageManager.PERMISSION_GRANTED
     }
+
+    override fun onStop() {
+        super.onStop()
+        val container = (application as WireWaveApp).container
+        if (!container.trustStore.connectionPrefs.value.keepAliveInBackground) {
+            if (container.sessionController.state.value is ClientSessionState.Connected) {
+                container.sessionController.disconnectForBackground()
+            }
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        val container = (application as WireWaveApp).container
+        if (container.sessionController.state.value is ClientSessionState.Disconnected &&
+            container.trustStore.connectionPrefs.value.autoConnect &&
+            !container.trustStore.wasExplicitlyDisconnected()
+        ) {
+            container.discoveryController.scan(allowAutoConnect = true)
+        }
+    }
 }
 
 @Composable
@@ -81,6 +105,7 @@ private fun WireWaveRoot(
     container: AppContainer,
     bluetoothPermissionsGranted: Boolean
 ) {
+    val context = LocalContext.current
     var showSettings by rememberSaveable { mutableStateOf(false) }
     val sessionState by container.sessionController.state.collectAsState()
     val discoveryState by container.discoveryController.state.collectAsState()
@@ -100,12 +125,28 @@ private fun WireWaveRoot(
 
     if (showSettings) {
         val connectedPc = (sessionState as? ClientSessionState.Connected)?.pcName
+        var trustedList by remember { mutableStateOf(container.trustStore.listTrustedDesktops()) }
         SettingsScreen(
             aboutSnapshot = container.aboutSnapshotFor(connectedPc),
             updateController = container.updateController,
             connectionPrefs = connectionPrefs,
+            trustedDesktops = trustedList,
             onToggleAutoConnect = container.trustStore::setAutoConnect,
-            onToggleKeepAlive = container.trustStore::setKeepAliveInBackground,
+            onToggleKeepAlive = { enabled ->
+                container.trustStore.setKeepAliveInBackground(enabled)
+                val state = container.sessionController.state.value
+                if (state is ClientSessionState.Connected) {
+                    if (enabled) {
+                        WireWaveConnectionService.start(context, state.pcName)
+                    } else {
+                        WireWaveConnectionService.stop(context)
+                    }
+                }
+            },
+            onForgetDesktop = { id ->
+                container.trustStore.forgetDesktop(id)
+                trustedList = container.trustStore.listTrustedDesktops()
+            },
             onBack = { showSettings = false }
         )
         return

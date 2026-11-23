@@ -1,0 +1,1 @@
+{"nodes": [{"id": "pkg_wirewave_core_config", "label": "wirewave-core-config", "file_type": "code", "type": "package", "ecosystem": "cargo", "source_file": "core/config/rust/Cargo.toml", "source_location": "L1"}], "edges": []}

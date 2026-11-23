@@ -61,8 +61,8 @@ class UpdateController(
         BuildChannel.DEV -> when (phase) {
             UpdatePhase.Idle -> UpdateActionSpec("Check for updates", UpdateAction.CHECK)
             UpdatePhase.UpToDate -> UpdateActionSpec("Up to date · Check again", UpdateAction.CHECK)
-            is UpdatePhase.Available -> UpdateActionSpec("Download", UpdateAction.DOWNLOAD)
-            is UpdatePhase.ReadyToInstall -> UpdateActionSpec("Install", UpdateAction.INSTALL)
+            is UpdatePhase.Available -> UpdateActionSpec("Download update", UpdateAction.DOWNLOAD)
+            is UpdatePhase.ReadyToInstall -> UpdateActionSpec("Install update", UpdateAction.INSTALL)
             is UpdatePhase.Failed -> UpdateActionSpec("Retry", UpdateAction.RETRY)
             UpdatePhase.Checking, is UpdatePhase.Downloading -> null
         }

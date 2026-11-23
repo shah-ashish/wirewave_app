@@ -1,7 +1,10 @@
 package com.wirewave.core.discovery
 
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothClass
+import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothSocket
 import android.content.Context
 import com.wirewave.core.config.AppConfig
 import com.wirewave.core.crypto.WireWaveCrypto
@@ -9,7 +12,11 @@ import com.wirewave.core.crypto.toHex
 import com.wirewave.core.transport.TransportKind
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
@@ -19,6 +26,7 @@ import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.NetworkInterface
 import java.net.SocketTimeoutException
+import java.util.UUID
 
 data class DiscoveredHost(
     val desktopId: String,
@@ -41,10 +49,14 @@ class HostScanner(
     private val appContext = context.applicationContext
 
     suspend fun scanAll(): List<DiscoveredHost> = withContext(ioDispatcher) {
-        val found = linkedMapOf<String, DiscoveredHost>()
-        scanWifiUdp().forEach { host -> found["${host.desktopId}:wifi"] = host }
-        scanBluetoothBonded().forEach { host -> found["${host.desktopId}:bt"] = host }
-        found.values.toList()
+        val wifiHosts = scanWifiUdp()
+        val wifiPcNames = wifiHosts.map { it.pcName.lowercase() }.toSet()
+
+        val btHosts = scanBluetoothBonded().filter { btHost ->
+            btHost.pcName.lowercase() !in wifiPcNames
+        }
+
+        wifiHosts + btHosts
     }
 
     private fun scanWifiUdp(): List<DiscoveredHost> {
@@ -102,8 +114,8 @@ class HostScanner(
                             reply.address.hostAddress.orEmpty(),
                             announcement.publicKeyHex
                         ) ?: continue
-                        // Deduplicate: same desktop may reply on multiple interfaces.
-                        val key = "${parsed.desktopId}:${parsed.hostAddress}"
+                        // Deduplicate by desktopId so a multi-homed PC only appears once.
+                        val key = parsed.desktopId
                         if (seen.add(key)) results.add(parsed)
                     }
                 }
@@ -115,28 +127,81 @@ class HostScanner(
     }
 
     @SuppressLint("MissingPermission")
-    private fun scanBluetoothBonded(): List<DiscoveredHost> {
+    private suspend fun scanBluetoothBonded(): List<DiscoveredHost> = withContext(ioDispatcher) {
         val btManager = appContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-            ?: return emptyList()
-        val adapter = btManager.adapter ?: return emptyList()
-        if (!adapter.isEnabled) return emptyList()
+            ?: return@withContext emptyList()
+        val adapter = btManager.adapter ?: return@withContext emptyList()
+        if (!adapter.isEnabled) return@withContext emptyList()
 
-        return try {
-            adapter.bondedDevices.orEmpty().mapNotNull { device ->
-                val name = device.name?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
-                val address = device.address ?: return@mapNotNull null
-                DiscoveredHost(
-                    desktopId = "bt_$address",
-                    pcName = name,
-                    hostAddress = address,
-                    tcpPort = 0,
-                    transport = TransportKind.BLUETOOTH,
-                    busy = false,
-                    publicKeyHex = null
-                )
+        val serviceUuid = try {
+            UUID.fromString(AppConfig.connection.btServiceUuid)
+        } catch (_: IllegalArgumentException) {
+            return@withContext emptyList()
+        }
+
+        // Only scan candidate bonded devices that are computers or uncategorized
+        val candidateDevices = try {
+            adapter.bondedDevices.orEmpty().filter { device ->
+                val majorClass = device.bluetoothClass?.majorDeviceClass
+                majorClass == null || majorClass == BluetoothClass.Device.Major.COMPUTER ||
+                    majorClass == BluetoothClass.Device.Major.UNCATEGORIZED
             }
         } catch (_: SecurityException) {
-            emptyList()
+            return@withContext emptyList()
+        }
+
+        if (candidateDevices.isEmpty()) return@withContext emptyList()
+
+        coroutineScope {
+            candidateDevices.map { device ->
+                async {
+                    verifyWireWaveBluetoothDevice(device, serviceUuid)
+                }
+            }.awaitAll().filterNotNull()
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private suspend fun verifyWireWaveBluetoothDevice(
+        device: BluetoothDevice,
+        serviceUuid: UUID
+    ): DiscoveredHost? = withTimeoutOrNull(800L) {
+        val name = device.name?.trim()?.takeIf { it.isNotEmpty() } ?: return@withTimeoutOrNull null
+        val address = device.address ?: return@withTimeoutOrNull null
+
+        val cachedUuids = device.uuids
+        if (cachedUuids != null && cachedUuids.isNotEmpty()) {
+            val matchesWireWave = cachedUuids.any {
+                it.uuid.toString().equals(AppConfig.connection.btServiceUuid, ignoreCase = true)
+            }
+            if (!matchesWireWave) {
+                return@withTimeoutOrNull null
+            }
+        }
+
+        var socket: BluetoothSocket? = null
+        try {
+            socket = device.createRfcommSocketToServiceRecord(serviceUuid)
+            withContext(Dispatchers.IO) {
+                socket.connect()
+            }
+            DiscoveredHost(
+                desktopId = "bt_$address",
+                pcName = name,
+                hostAddress = address,
+                tcpPort = 0,
+                transport = TransportKind.BLUETOOTH,
+                busy = false,
+                publicKeyHex = null
+            )
+        } catch (_: Exception) {
+            null
+        } finally {
+            try {
+                socket?.close()
+            } catch (_: IOException) {
+                // Ignore socket close error
+            }
         }
     }
 

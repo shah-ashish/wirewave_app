@@ -86,10 +86,10 @@ impl UpdateController {
                 Some(("Up to date · Check again", UpdateAction::Check))
             }
             (BuildChannel::Dev, UpdatePhase::Available(_)) => {
-                Some(("Download", UpdateAction::Download))
+                Some(("Download update", UpdateAction::Download))
             }
             (BuildChannel::Dev, UpdatePhase::ReadyToInstall { .. }) => {
-                Some(("Install", UpdateAction::Install))
+                Some(("Install update", UpdateAction::Install))
             }
             (BuildChannel::Dev, UpdatePhase::Failed { .. }) => {
                 Some(("Retry", UpdateAction::Retry))
