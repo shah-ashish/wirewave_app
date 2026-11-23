@@ -192,7 +192,7 @@ class SessionController(
         val input = DataInputStream(rawInput)
         val output = DataOutputStream(rawOutput)
         val ephemeral = EphemeralX25519()
-        val isTrusted = store.getTrustedDesktop(host.desktopId) != null
+        val isTrusted = store.getTrustedDesktopForHost(host.desktopId, host.transport, host.hostAddress) != null
         val hello = JSONObject().apply {
             put("type", "hello")
             put("protocol_domain", AppConfig.connection.protocolDomain)
@@ -270,6 +270,9 @@ class SessionController(
             return failSession("Desktop authenticity check failed.")
         }
         store.saveTrustedDesktop(TrustedDesktop(desktopId, desktopName, desktopPub))
+        if (host.transport == TransportKind.BLUETOOTH) {
+            store.associateBluetoothAddress(desktopId, host.hostAddress)
+        }
 
         val sessionKey = WireWaveCrypto.deriveSessionKey(shared, exchangeHash)
         enterEncryptedLoop(
@@ -336,6 +339,9 @@ class SessionController(
                         return failSession("Desktop authenticity check failed.")
                     }
                     store.saveTrustedDesktop(TrustedDesktop(desktopId, desktopName, desktopPub))
+        if (host.transport == TransportKind.BLUETOOTH) {
+            store.associateBluetoothAddress(desktopId, host.hostAddress)
+        }
                     val sessionKey = WireWaveCrypto.deriveSessionKey(shared, exchangeHash)
                     enterEncryptedLoop(
                         desktopId,

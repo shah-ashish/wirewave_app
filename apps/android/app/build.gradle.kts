@@ -87,6 +87,8 @@ dependencies {
     implementation(project(":core:session"))
     implementation(project(":features:settings"))
     implementation(project(":features:connection"))
+    implementation(project(":core:stream"))
+    implementation(project(":features:speaker"))
 
     implementation("androidx.activity:activity-compose:1.8.2")
     implementation("androidx.core:core-ktx:1.12.0")

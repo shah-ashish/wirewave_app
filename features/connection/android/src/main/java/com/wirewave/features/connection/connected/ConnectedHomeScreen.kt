@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.sp
 import com.wirewave.core.config.AppConfig
 import com.wirewave.core.config.WireWaveTheme
 import com.wirewave.core.transport.TransportKind
+import com.wirewave.features.speaker.SpeakerCircleTile
 
 private data class ServiceCircleSpec(val label: String, val icon: ImageVector)
 private data class UsePhoneRowSpec(
@@ -64,11 +65,12 @@ fun ConnectedHomeScreen(
     onDisconnect: () -> Unit,
     onOpenSettings: () -> Unit,
     brandMark: @Composable () -> Unit,
+    isSpeakerOn: Boolean = false,
+    onToggleSpeaker: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val circles = listOf(
-        ServiceCircleSpec("Speaker", Icons.Rounded.VolumeUp),
+    val remainingCircles = listOf(
         ServiceCircleSpec("Mic", Icons.Rounded.Mic),
         ServiceCircleSpec("Keyboard", Icons.Rounded.Keyboard)
     )
@@ -165,7 +167,11 @@ fun ConnectedHomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                circles.forEach { spec ->
+                SpeakerCircleTile(
+                    isOn = isSpeakerOn,
+                    onToggle = onToggleSpeaker
+                )
+                remainingCircles.forEach { spec ->
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier

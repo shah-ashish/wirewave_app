@@ -150,12 +150,21 @@ pub fn verify_sha256(path: &Path, expected_hex: &str) -> Result<(), UpdateError>
     }
 }
 
+fn installer_dir() -> PathBuf {
+    std::env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .map(|p| p.join(APP_CONFIG.app_name).join("updates"))
+        .unwrap_or_else(|| std::env::temp_dir().join(APP_CONFIG.app_name).join("updates"))
+}
+
 fn installer_path(version_name: &str) -> PathBuf {
     let safe_ver: String = version_name
         .chars()
         .filter(|c| c.is_ascii_alphanumeric() || *c == '.' || *c == '-')
         .collect();
-    std::env::temp_dir().join(format!("{}-Setup-{safe_ver}.exe", APP_CONFIG.app_name))
+    let dir = installer_dir();
+    let _ = fs::create_dir_all(&dir);
+    dir.join(format!("{}-Setup-{safe_ver}.exe", APP_CONFIG.app_name))
 }
 
 #[cfg(test)]

@@ -7088,14 +7088,14 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-compatibility"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "wirewave-core-config",
 ]
 
 [[package]]
 name = "wirewave-core-config"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -7103,7 +7103,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-crypto"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "chacha20poly1305",
  "directories",
@@ -7123,7 +7123,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-discovery"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "hex",
  "serde",
@@ -7135,7 +7135,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-identity"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "directories",
  "hex",
@@ -7150,7 +7150,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-session"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "directories",
  "hex",
@@ -7172,8 +7172,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "wirewave-core-stream"
+version = "1.1.3"
+dependencies = [
+ "chacha20poly1305",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "wirewave-core-config",
+ "zeroize",
+]
+
+[[package]]
 name = "wirewave-core-transport"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "serde",
  "serde_json",
@@ -7184,7 +7199,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-updater"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "hex",
  "open",
@@ -7198,7 +7213,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-desktop"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "gpui",
  "serde",
@@ -7218,17 +7233,19 @@ dependencies = [
 
 [[package]]
 name = "wirewave-feature-connection"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "gpui",
  "wirewave-core-config",
  "wirewave-core-session",
+ "wirewave-core-stream",
  "wirewave-core-transport",
+ "wirewave-feature-speaker",
 ]
 
 [[package]]
 name = "wirewave-feature-settings"
-version = "1.1.2"
+version = "1.1.3"
 dependencies = [
  "gpui",
  "hostname",
@@ -7239,6 +7256,19 @@ dependencies = [
  "wirewave-core-session",
  "wirewave-core-transport",
  "wirewave-core-updater",
+]
+
+[[package]]
+name = "wirewave-feature-speaker"
+version = "1.1.3"
+dependencies = [
+ "gpui",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "windows 0.58.0",
+ "wirewave-core-config",
+ "wirewave-core-stream",
 ]
 
 [[package]]

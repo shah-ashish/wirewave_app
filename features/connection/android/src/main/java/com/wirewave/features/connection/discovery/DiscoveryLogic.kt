@@ -3,6 +3,7 @@ package com.wirewave.features.connection.discovery
 import com.wirewave.core.discovery.DiscoveredHost
 import com.wirewave.core.discovery.HostScanner
 import com.wirewave.core.session.SessionController
+import com.wirewave.core.transport.TransportKind
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,7 +37,9 @@ class DiscoveryController(
                 val match = found.firstOrNull { host ->
                     if (host.busy) return@firstOrNull false
                     if (lastId == null || trusted == null) return@firstOrNull false
-                    host.desktopId == lastId && (host.publicKeyHex == null || host.publicKeyHex.equals(trusted.publicKeyHex, ignoreCase = true))
+                    val isMatchingHost = host.desktopId == lastId ||
+                        (host.transport == TransportKind.BLUETOOTH && session.store.getDesktopIdForBluetoothAddress(host.hostAddress) == lastId)
+                    isMatchingHost && (host.publicKeyHex == null || host.publicKeyHex.equals(trusted.publicKeyHex, ignoreCase = true))
                 }
                 if (match != null) {
                     session.connect(match)

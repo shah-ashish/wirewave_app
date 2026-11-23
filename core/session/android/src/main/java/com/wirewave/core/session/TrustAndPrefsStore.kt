@@ -1,6 +1,7 @@
 package com.wirewave.core.session
 
 import android.content.Context
+import com.wirewave.core.transport.TransportKind
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +41,28 @@ class TrustAndPrefsStore(context: Context) {
             .apply()
     }
 
+    fun associateBluetoothAddress(desktopId: String, btAddress: String) {
+        if (btAddress.isBlank()) return
+        prefs.edit()
+            .putString("$BT_PREFIX$btAddress", desktopId)
+            .putString("$TRUST_PREFIX${desktopId}_bt", btAddress)
+            .apply()
+    }
+
+    fun getDesktopIdForBluetoothAddress(btAddress: String): String? {
+        return prefs.getString("$BT_PREFIX$btAddress", null)
+    }
+
+    fun getTrustedDesktopForHost(desktopId: String, transport: TransportKind, hostAddress: String): TrustedDesktop? {
+        val direct = getTrustedDesktop(desktopId)
+        if (direct != null) return direct
+        if (transport == TransportKind.BLUETOOTH) {
+            val mappedId = getDesktopIdForBluetoothAddress(hostAddress) ?: return null
+            return getTrustedDesktop(mappedId)
+        }
+        return null
+    }
+
     fun getTrustedDesktop(desktopId: String): TrustedDesktop? {
         val pub = prefs.getString("$TRUST_PREFIX${desktopId}_pub", null)?.trim() ?: return null
         val name = prefs.getString("$TRUST_PREFIX${desktopId}_name", null)?.trim() ?: "Windows PC"
@@ -49,10 +72,15 @@ class TrustAndPrefsStore(context: Context) {
     fun lastDesktopId(): String? = prefs.getString(KEY_LAST_DESKTOP_ID, null)
 
     fun forgetDesktop(desktopId: String) {
-        prefs.edit()
+        val btAddress = prefs.getString("$TRUST_PREFIX${desktopId}_bt", null)
+        val editor = prefs.edit()
             .remove("$TRUST_PREFIX${desktopId}_name")
             .remove("$TRUST_PREFIX${desktopId}_pub")
-            .apply()
+            .remove("$TRUST_PREFIX${desktopId}_bt")
+        if (btAddress != null) {
+            editor.remove("$BT_PREFIX$btAddress")
+        }
+        editor.apply()
         if (lastDesktopId() == desktopId) {
             prefs.edit().remove(KEY_LAST_DESKTOP_ID).apply()
         }
@@ -85,5 +113,6 @@ class TrustAndPrefsStore(context: Context) {
         private const val KEY_LAST_DESKTOP_ID = "last_desktop_id"
         private const val KEY_EXPLICIT_DISCONNECT = "explicit_disconnect"
         private const val TRUST_PREFIX = "trusted_"
+        private const val BT_PREFIX = "bt_map_"
     }
 }

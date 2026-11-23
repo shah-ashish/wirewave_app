@@ -2,6 +2,7 @@ use crate::connected::connected_logic::{ConnectedViewState, ServiceTileSpec};
 use gpui::{div, prelude::*, px, rgba, svg, Context, Div, FontWeight, Render};
 use wirewave_core_config::{APP_CONFIG, THEME};
 use wirewave_core_transport::TransportKind;
+use wirewave_feature_speaker::{render_speaker_tile, CanToggleSpeaker};
 
 pub trait CanDisconnect: 'static {
     fn on_disconnect(&mut self);
@@ -9,7 +10,7 @@ pub trait CanDisconnect: 'static {
 
 /// Renders Desktop Connected Home screen matching Desktop_Home_-_Connected.png,
 /// with Active Services shown as UI-only tiles carrying a `Coming soon` badge.
-pub fn render_connected_view<V: Render + CanDisconnect>(
+pub fn render_connected_view<V: Render + CanDisconnect + CanToggleSpeaker>(
     state: &ConnectedViewState,
     cx: &mut Context<V>,
 ) -> Div {
@@ -145,7 +146,7 @@ pub fn render_connected_view<V: Render + CanDisconnect>(
         .flex_row()
         .gap(px(12.0))
         .w_full()
-        .child(service_placeholder_tile(state.services[0]))
+        .child(render_speaker_tile(&state.speaker, cx))
         .child(service_placeholder_tile(state.services[1]))
         .child(service_placeholder_tile(state.services[2]));
 

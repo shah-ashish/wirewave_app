@@ -19,6 +19,7 @@ import com.wirewave.features.connection.discovery.DiscoveryController
 import com.wirewave.features.settings.about.AboutLogic
 import com.wirewave.features.settings.about.AboutSnapshot
 import com.wirewave.features.settings.update.UpdateController
+import com.wirewave.features.speaker.SpeakerEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -77,6 +78,8 @@ class AppContainer(context: Context) {
         downloader = UpdateDownloader(appContext, httpClient),
         installer = ApkInstaller(appContext)
     )
+
+    val speakerEngine: SpeakerEngine = SpeakerEngine(appScope)
 
     fun aboutSnapshotFor(connectedPc: String?): AboutSnapshot = AboutLogic.loadSnapshot(
         context = appContext,

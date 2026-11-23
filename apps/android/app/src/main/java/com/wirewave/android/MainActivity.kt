@@ -34,10 +34,10 @@ import com.wirewave.features.settings.SettingsScreen
 class MainActivity : ComponentActivity() {
     private var bluetoothPermissionsGranted by mutableStateOf(false)
 
-    private val bluetoothPermissionLauncher = registerForActivityResult(
+    private val runtimePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { grants ->
-        bluetoothPermissionsGranted = grants.values.all { it }
+    ) { _ ->
+        bluetoothPermissionsGranted = hasBluetoothPermissions()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -57,13 +57,22 @@ class MainActivity : ComponentActivity() {
             )
         }
 
+        requestNeededPermissions()
+    }
+
+    private fun requestNeededPermissions() {
+        val needed = mutableListOf<String>()
         if (!bluetoothPermissionsGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            bluetoothPermissionLauncher.launch(
-                arrayOf(
-                    Manifest.permission.BLUETOOTH_SCAN,
-                    Manifest.permission.BLUETOOTH_CONNECT
-                )
-            )
+            needed.add(Manifest.permission.BLUETOOTH_SCAN)
+            needed.add(Manifest.permission.BLUETOOTH_CONNECT)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                needed.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+        }
+        if (needed.isNotEmpty()) {
+            runtimePermissionLauncher.launch(needed.toTypedArray())
         }
     }
 
@@ -82,6 +91,7 @@ class MainActivity : ComponentActivity() {
         super.onStop()
         val container = (application as WireWaveApp).container
         if (!container.trustStore.connectionPrefs.value.keepAliveInBackground) {
+            container.speakerEngine.stop()
             if (container.sessionController.state.value is ClientSessionState.Connected) {
                 container.sessionController.disconnectForBackground()
             }
@@ -110,6 +120,7 @@ private fun WireWaveRoot(
     val sessionState by container.sessionController.state.collectAsState()
     val discoveryState by container.discoveryController.state.collectAsState()
     val connectionPrefs by container.trustStore.connectionPrefs.collectAsState()
+    val speakerState by container.speakerEngine.state.collectAsState()
 
     LaunchedEffect(bluetoothPermissionsGranted) {
         container.discoveryController.scan(allowAutoConnect = true)
@@ -182,9 +193,18 @@ private fun WireWaveRoot(
         is ClientSessionState.Connected -> ConnectedHomeScreen(
             pcName = state.pcName,
             transport = state.transport,
-            onDisconnect = container.sessionController::disconnectExplicitly,
+            onDisconnect = {
+                container.speakerEngine.stop()
+                container.sessionController.disconnectExplicitly()
+            },
             onOpenSettings = { showSettings = true },
-            brandMark = brandMark
+            brandMark = brandMark,
+            isSpeakerOn = speakerState.isOn,
+            onToggleSpeaker = {
+                if (speakerState.isOn) {
+                    container.speakerEngine.stop()
+                }
+            }
         )
     }
 }

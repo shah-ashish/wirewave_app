@@ -23,6 +23,8 @@ dependencies {
     implementation(project(":core:discovery"))
     implementation(project(":core:transport"))
     implementation(project(":core:session"))
+    implementation(project(":core:stream"))
+    implementation(project(":features:speaker"))
 
     implementation(platform("androidx.compose:compose-bom:2024.02.01"))
     implementation("androidx.compose.ui:ui")

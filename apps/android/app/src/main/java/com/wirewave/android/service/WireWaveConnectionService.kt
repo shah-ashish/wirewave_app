@@ -35,13 +35,17 @@ class WireWaveConnectionService : Service() {
                 val pcName = intent?.getStringExtra(EXTRA_PC_NAME) ?: "PC"
                 acquireLocks()
                 val notification = buildNotification(pcName)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    startForeground(
-                        NOTIFICATION_ID,
-                        notification,
-                        ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-                    )
-                } else {
+                try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        startForeground(
+                            NOTIFICATION_ID,
+                            notification,
+                            ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
+                        )
+                    } else {
+                        startForeground(NOTIFICATION_ID, notification)
+                    }
+                } catch (_: SecurityException) {
                     startForeground(NOTIFICATION_ID, notification)
                 }
                 return START_STICKY

@@ -46,5 +46,11 @@ project(":features:settings").projectDir = file("../../features/settings/android
 include(":features:connection")
 project(":features:connection").projectDir = file("../../features/connection/android")
 
+include(":core:stream")
+project(":core:stream").projectDir = file("../../core/stream/android")
+
+include(":features:speaker")
+project(":features:speaker").projectDir = file("../../features/speaker/android")
+
 include(":app")
 project(":app").projectDir = file("app")
