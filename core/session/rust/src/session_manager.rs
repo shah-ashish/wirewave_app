@@ -16,10 +16,11 @@ use tokio::{
 use wirewave_core_config::APP_CONFIG;
 use wirewave_core_crypto::{
     compute_exchange_hash, derive_session_key, generate_otp, verify_otp_proof,
-    verify_peer_signature, IdentityKeypair, CipherRole, SessionCipher,
+    verify_peer_signature, CipherRole, IdentityKeypair, SessionCipher,
 };
 use wirewave_core_discovery::run_udp_discovery_responder;
 use wirewave_core_identity::DeviceIdentity;
+use wirewave_core_stream::{derive_udp_key, UdpDataChannel};
 use wirewave_core_transport::{
     read_frame, write_frame, ControlMessage, RejectCode, TransportKind, TransportPriority,
 };
@@ -94,6 +95,7 @@ struct SessionInner {
     pairing_cancel_tx: Option<watch::Sender<bool>>,
     wifi_listening: bool,
     bluetooth_listening: bool,
+    speaker_policy_tx: watch::Sender<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -104,6 +106,12 @@ struct HandshakeReservation {
 
 pub type SharedSession = Arc<SessionManager>;
 
+pub trait SpeakerStreamHost: Send + Sync {
+    fn start_stream(&self, channel: Arc<UdpDataChannel>, runtime: tokio::runtime::Handle);
+    fn stop_stream(&self);
+    fn status_detail(&self) -> Option<String>;
+}
+
 /// Owns the 1-to-1 desktop session lock, trust agreement store, priority arbitration,
 /// and background encrypted listeners (Wi-Fi TCP + UDP authenticated discovery).
 pub struct SessionManager {
@@ -111,16 +119,23 @@ pub struct SessionManager {
     pc_name: String,
     keypair: IdentityKeypair,
     inner: RwLock<SessionInner>,
+    speaker_host: Arc<dyn SpeakerStreamHost>,
 }
 
 impl SessionManager {
-    pub fn new(identity: DeviceIdentity, keypair: IdentityKeypair) -> SharedSession {
+    pub fn new(
+        identity: DeviceIdentity,
+        keypair: IdentityKeypair,
+        speaker_host: Arc<dyn SpeakerStreamHost>,
+    ) -> SharedSession {
         let pc_name = hostname::get()
             .ok()
             .and_then(|s| s.into_string().ok())
             .filter(|s| !s.trim().is_empty())
             .unwrap_or_else(|| "Windows PC".to_string());
 
+        let prefs = PreferencesStore::load_default();
+        let (speaker_policy_tx, _) = watch::channel(prefs.get().speaker_service_allowed);
         Arc::new(Self {
             desktop_id: identity.device_id,
             pc_name,
@@ -129,12 +144,14 @@ impl SessionManager {
                 state: SessionState::Idle,
                 handshake_reservation: None,
                 trust: TrustStore::load_default(),
-                prefs: PreferencesStore::load_default(),
+                prefs,
                 active_cancel_tx: None,
                 pairing_cancel_tx: None,
                 wifi_listening: false,
                 bluetooth_listening: false,
+                speaker_policy_tx,
             }),
+            speaker_host,
         })
     }
 
@@ -164,6 +181,15 @@ impl SessionManager {
     pub fn set_keep_alive(&self, enabled: bool) {
         let mut guard = self.inner.write().expect("session lock poisoned");
         guard.prefs.set_keep_alive(enabled);
+    }
+
+    pub fn set_speaker_service_allowed(&self, allowed: bool) {
+        let mut guard = self.inner.write().expect("session lock poisoned");
+        guard.prefs.set_speaker_service_allowed(allowed);
+        let _ = guard.speaker_policy_tx.send(allowed);
+        if !allowed {
+            self.speaker_host.stop_stream();
+        }
     }
 
     pub fn disconnect_active(&self) {
@@ -244,15 +270,14 @@ impl SessionManager {
                     tokio::spawn(async move {
                         let busy_flag = Arc::clone(&disc_session);
                         let signing_session = Arc::clone(&disc_session);
-                        if let Err(err) =
-                            run_udp_discovery_responder(
-                                desktop_id,
-                                pc_name,
-                                desktop_public_key_hex,
-                                move |payload| signing_session.keypair.sign(payload),
-                                move || busy_flag.is_busy(),
-                            )
-                                .await
+                        if let Err(err) = run_udp_discovery_responder(
+                            desktop_id,
+                            pc_name,
+                            desktop_public_key_hex,
+                            move |payload| signing_session.keypair.sign(payload),
+                            move || busy_flag.is_busy(),
+                        )
+                        .await
                         {
                             tracing::error!(%err, "UDP discovery responder stopped");
                         }
@@ -279,8 +304,11 @@ impl SessionManager {
                                     };
                                     let mgr = Arc::clone(&stream_session);
                                     runtime_handle.spawn(async move {
-                                        mgr.handle_incoming_stream(stream, TransportKind::Bluetooth)
-                                            .await;
+                                        mgr.handle_incoming_stream(
+                                            stream,
+                                            TransportKind::Bluetooth,
+                                        )
+                                        .await;
                                     });
                                 },
                             );
@@ -319,7 +347,8 @@ impl SessionManager {
             };
             let mgr = Arc::clone(&self);
             tokio::spawn(async move {
-                mgr.handle_incoming_stream(stream, TransportKind::WiFi).await;
+                mgr.handle_incoming_stream(stream, TransportKind::WiFi)
+                    .await;
             });
         }
     }
@@ -374,28 +403,30 @@ impl SessionManager {
                 let _ = send_control(&mut stream, &ControlMessage::Rejected { code }).await;
             }
             IncomingDecision::TrustedChallenge { stored_pubkey } => {
-                Arc::clone(&self).run_trusted_handshake(
-                    stream,
-                    device_id.clone(),
-                    device_name,
-                    stored_pubkey,
-                    peer_x25519,
-                    ephemeral_x25519_hex,
-                    transport,
-                )
-                .await;
+                Arc::clone(&self)
+                    .run_trusted_handshake(
+                        stream,
+                        device_id.clone(),
+                        device_name,
+                        stored_pubkey,
+                        peer_x25519,
+                        ephemeral_x25519_hex,
+                        transport,
+                    )
+                    .await;
             }
             IncomingDecision::RequireOtp => {
-                Arc::clone(&self).run_otp_pairing(
-                    stream,
-                    device_id.clone(),
-                    device_name,
-                    public_key_hex,
-                    peer_x25519,
-                    ephemeral_x25519_hex,
-                    transport,
-                )
-                .await;
+                Arc::clone(&self)
+                    .run_otp_pairing(
+                        stream,
+                        device_id.clone(),
+                        device_name,
+                        public_key_hex,
+                        peer_x25519,
+                        ephemeral_x25519_hex,
+                        transport,
+                    )
+                    .await;
             }
         }
         self.clear_handshake_reservation(&device_id, transport);
@@ -440,10 +471,9 @@ impl SessionManager {
             SessionState::Connected(active) => {
                 // Preempt only if the incoming link strictly outranks the current link AND the peer is trusted.
                 let priority = guard.prefs.get().priority;
-                let can_preempt =
-                    priority.outranks(incoming_transport, active.transport)
-                        && trusted_pubkey.is_some()
-                        && !require_pairing;
+                let can_preempt = priority.outranks(incoming_transport, active.transport)
+                    && trusted_pubkey.is_some()
+                    && !require_pairing;
                 match (can_preempt, trusted_pubkey) {
                     (true, Some(pk)) => {
                         if let Some(tx) = guard.active_cancel_tx.take() {
@@ -541,13 +571,7 @@ impl SessionManager {
         }
 
         let session_key = derive_session_key(shared.as_bytes(), &exchange_hash);
-        self.enter_connected_loop(
-            stream,
-            device_id,
-            device_name,
-            transport,
-            SessionCipher::new(session_key, CipherRole::Desktop),
-        )
+        self.enter_connected_loop(stream, device_id, device_name, transport, session_key)
             .await;
     }
 
@@ -662,11 +686,9 @@ impl SessionManager {
 
         {
             let mut guard = self.inner.write().expect("session lock poisoned");
-            guard.trust.upsert_trusted(
-                device_id.clone(),
-                device_name.clone(),
-                peer_pubkey_hex,
-            );
+            guard
+                .trust
+                .upsert_trusted(device_id.clone(), device_name.clone(), peer_pubkey_hex);
             guard.pairing_cancel_tx = None;
         }
 
@@ -686,13 +708,7 @@ impl SessionManager {
         }
 
         let session_key = derive_session_key(shared.as_bytes(), &exchange_hash);
-        self.enter_connected_loop(
-            stream,
-            device_id,
-            device_name,
-            transport,
-            SessionCipher::new(session_key, CipherRole::Desktop),
-        )
+        self.enter_connected_loop(stream, device_id, device_name, transport, session_key)
             .await;
     }
 
@@ -702,10 +718,11 @@ impl SessionManager {
         device_id: String,
         device_name: String,
         transport: TransportKind,
-        mut cipher: SessionCipher,
+        session_key: [u8; 32],
     ) {
+        let mut cipher = SessionCipher::new(session_key, CipherRole::Desktop);
         let (cancel_tx, mut cancel_rx) = watch::channel(false);
-        {
+        let mut speaker_policy_rx = {
             let mut guard = self.inner.write().expect("session lock poisoned");
             guard.handshake_reservation = None;
             guard.active_cancel_tx = Some(cancel_tx);
@@ -714,6 +731,32 @@ impl SessionManager {
                 device_name,
                 transport,
             });
+            guard.speaker_policy_tx.subscribe()
+        };
+
+        let initially_allowed = self
+            .inner
+            .read()
+            .expect("session lock poisoned")
+            .prefs
+            .get()
+            .speaker_service_allowed;
+        let initial_state = ControlMessage::SpeakerState {
+            allowed: initially_allowed,
+            active: false,
+            detail: (!initially_allowed).then(|| "Blocked by desktop settings".into()),
+            udp_port: None,
+            stream_id: None,
+            udp_key_hex: None,
+        };
+        if send_encrypted(&mut stream, &mut cipher, &initial_state)
+            .await
+            .is_err()
+        {
+            let mut guard = self.inner.write().expect("session lock poisoned");
+            guard.active_cancel_tx = None;
+            guard.state = SessionState::Idle;
+            return;
         }
 
         let hb_interval = Duration::from_secs(APP_CONFIG.connection.heartbeat_interval_secs);
@@ -728,6 +771,26 @@ impl SessionManager {
                     let msg = ControlMessage::Disconnect { reason: "server_disconnect".into() };
                     let _ = send_encrypted(&mut stream, &mut cipher, &msg).await;
                     break;
+                }
+                changed = speaker_policy_rx.changed() => {
+                    if changed.is_err() {
+                        break;
+                    }
+                    let allowed = *speaker_policy_rx.borrow();
+                    if !allowed {
+                        self.speaker_host.stop_stream();
+                    }
+                    let state = ControlMessage::SpeakerState {
+                        allowed,
+                        active: false,
+                        detail: (!allowed).then(|| "Blocked by desktop settings".into()),
+                        udp_port: None,
+                        stream_id: None,
+                        udp_key_hex: None,
+                    };
+                    if send_encrypted(&mut stream, &mut cipher, &state).await.is_err() {
+                        break;
+                    }
                 }
                 _ = ticker.tick() => {
                     if last_seen.elapsed() > hb_timeout {
@@ -749,12 +812,74 @@ impl SessionManager {
                             let _ = send_encrypted(&mut stream, &mut cipher, &ControlMessage::HeartbeatPong { seq }).await;
                         }
                         ControlMessage::HeartbeatPong { .. } => {}
+                        ControlMessage::SpeakerCommand { active: false } => {
+                            self.speaker_host.stop_stream();
+                            let state = ControlMessage::SpeakerState {
+                                allowed: self.inner.read().expect("session lock poisoned").prefs.get().speaker_service_allowed,
+                                active: false,
+                                detail: None,
+                                udp_port: None,
+                                stream_id: None,
+                                udp_key_hex: None,
+                            };
+                            let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                        }
+                        ControlMessage::SpeakerCommand { active: true } => {
+                            let allowed = self.inner.read().expect("session lock poisoned").prefs.get().speaker_service_allowed;
+                            if !allowed {
+                                let state = ControlMessage::SpeakerState {
+                                    allowed: false,
+                                    active: false,
+                                    detail: Some("Blocked by desktop settings".into()),
+                                    udp_port: None,
+                                    stream_id: None,
+                                    udp_key_hex: None,
+                                };
+                                let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                                continue;
+                            }
+
+                            let stream_id = OsRng.next_u32();
+                            let udp_key = derive_udp_key(&session_key, stream_id);
+                            match UdpDataChannel::bind(udp_key, stream_id).await {
+                                Ok((channel, endpoint)) => {
+                                    let accept_channel = Arc::clone(&channel);
+                                    tokio::spawn(async move {
+                                        let _ = accept_channel.accept_peer_hello().await;
+                                    });
+                                    self.speaker_host.start_stream(channel, tokio::runtime::Handle::current());
+                                    let state = ControlMessage::SpeakerState {
+                                        allowed: true,
+                                        active: true,
+                                        detail: self.speaker_host.status_detail(),
+                                        udp_port: Some(endpoint.local_port),
+                                        stream_id: Some(endpoint.stream_id),
+                                        udp_key_hex: Some(hex::encode(udp_key)),
+                                    };
+                                    let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                                }
+                                Err(err) => {
+                                    tracing::warn!(%err, "Unable to bind speaker UDP stream");
+                                    let state = ControlMessage::SpeakerState {
+                                        allowed: true,
+                                        active: false,
+                                        detail: Some("Unable to open audio stream".into()),
+                                        udp_port: None,
+                                        stream_id: None,
+                                        udp_key_hex: None,
+                                    };
+                                    let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                                }
+                            }
+                        }
                         ControlMessage::Disconnect { .. } => break,
                         _ => {}
                     }
                 }
             }
         }
+
+        self.speaker_host.stop_stream();
 
         let mut guard = self.inner.write().expect("session lock poisoned");
         let still_same = matches!(

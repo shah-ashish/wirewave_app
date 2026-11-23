@@ -121,6 +121,27 @@ private fun WireWaveRoot(
     val discoveryState by container.discoveryController.state.collectAsState()
     val connectionPrefs by container.trustStore.connectionPrefs.collectAsState()
     val speakerState by container.speakerEngine.state.collectAsState()
+    val speakerRemoteState by container.sessionController.speakerState.collectAsState()
+
+    LaunchedEffect(
+        speakerRemoteState.active,
+        speakerRemoteState.hostAddress,
+        speakerRemoteState.udpPort,
+        speakerRemoteState.streamId,
+        speakerRemoteState.udpKey
+    ) {
+        val host = speakerRemoteState.hostAddress
+        val port = speakerRemoteState.udpPort
+        val streamId = speakerRemoteState.streamId
+        val key = speakerRemoteState.udpKey
+        if (speakerRemoteState.allowed && speakerRemoteState.active &&
+            host != null && port != null && streamId != null && key != null
+        ) {
+            container.speakerEngine.start(host, port, key, streamId)
+        } else {
+            container.speakerEngine.stop()
+        }
+    }
 
     LaunchedEffect(bluetoothPermissionsGranted) {
         container.discoveryController.scan(allowAutoConnect = true)
@@ -200,10 +221,9 @@ private fun WireWaveRoot(
             onOpenSettings = { showSettings = true },
             brandMark = brandMark,
             isSpeakerOn = speakerState.isOn,
+            isSpeakerBlocked = !speakerRemoteState.allowed,
             onToggleSpeaker = {
-                if (speakerState.isOn) {
-                    container.speakerEngine.stop()
-                }
+                container.sessionController.requestSpeakerActive(!speakerRemoteState.active)
             }
         )
     }

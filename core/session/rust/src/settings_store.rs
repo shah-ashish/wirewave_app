@@ -10,6 +10,12 @@ const PREFS_FILE_NAME: &str = "connection_settings.json";
 pub struct ConnectionPreferences {
     pub priority: TransportPriority,
     pub keep_alive_in_background: bool,
+    #[serde(default = "default_true")]
+    pub speaker_service_allowed: bool,
+}
+
+const fn default_true() -> bool {
+    true
 }
 
 impl Default for ConnectionPreferences {
@@ -17,6 +23,7 @@ impl Default for ConnectionPreferences {
         Self {
             priority: TransportPriority::from_config(APP_CONFIG.connection.default_priority),
             keep_alive_in_background: true,
+            speaker_service_allowed: true,
         }
     }
 }
@@ -29,7 +36,11 @@ pub struct PreferencesStore {
 impl PreferencesStore {
     pub fn load_default() -> Self {
         let path = BaseDirs::new()
-            .map(|b| b.data_local_dir().join(APP_CONFIG.app_name).join(PREFS_FILE_NAME))
+            .map(|b| {
+                b.data_local_dir()
+                    .join(APP_CONFIG.app_name)
+                    .join(PREFS_FILE_NAME)
+            })
             .unwrap_or_else(|| PathBuf::from(PREFS_FILE_NAME));
         Self::load_at(path)
     }
@@ -56,6 +67,11 @@ impl PreferencesStore {
         self.persist();
     }
 
+    pub fn set_speaker_service_allowed(&mut self, allowed: bool) {
+        self.prefs.speaker_service_allowed = allowed;
+        self.persist();
+    }
+
     fn persist(&self) {
         if let Some(parent) = self.path.parent() {
             let _ = fs::create_dir_all(parent);
@@ -66,5 +82,27 @@ impl PreferencesStore {
                 let _ = fs::rename(&tmp, &self.path);
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn speaker_service_is_allowed_by_default() {
+        assert!(ConnectionPreferences::default().speaker_service_allowed);
+    }
+
+    #[test]
+    fn old_preferences_without_speaker_field_keep_existing_values() {
+        let prefs: ConnectionPreferences = serde_json::from_str(
+            r#"{"priority":"bluetooth_first","keep_alive_in_background":false}"#,
+        )
+        .expect("legacy preferences should deserialize");
+
+        assert_eq!(prefs.priority, TransportPriority::BluetoothFirst);
+        assert!(!prefs.keep_alive_in_background);
+        assert!(prefs.speaker_service_allowed);
     }
 }

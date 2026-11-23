@@ -116,6 +116,17 @@ pub enum ControlMessage {
     HeartbeatPong {
         seq: u64,
     },
+    SpeakerCommand {
+        active: bool,
+    },
+    SpeakerState {
+        allowed: bool,
+        active: bool,
+        detail: Option<String>,
+        udp_port: Option<u16>,
+        stream_id: Option<u32>,
+        udp_key_hex: Option<String>,
+    },
     Disconnect {
         reason: String,
     },
@@ -144,7 +155,9 @@ pub async fn write_frame<W: AsyncWrite + Unpin>(
         return Err(TransportError::FrameTooLarge);
     }
     writer.write_all(&FRAME_MAGIC).await?;
-    writer.write_all(&(payload.len() as u32).to_be_bytes()).await?;
+    writer
+        .write_all(&(payload.len() as u32).to_be_bytes())
+        .await?;
     writer.write_all(payload).await?;
     writer.flush().await?;
     Ok(())
@@ -174,8 +187,43 @@ mod tests {
 
     #[test]
     fn transport_priority_ranks_correctly() {
-        assert!(TransportPriority::WifiFirst.outranks(TransportKind::WiFi, TransportKind::Bluetooth));
-        assert!(!TransportPriority::WifiFirst.outranks(TransportKind::Bluetooth, TransportKind::WiFi));
-        assert!(TransportPriority::BluetoothFirst.outranks(TransportKind::Bluetooth, TransportKind::WiFi));
+        assert!(
+            TransportPriority::WifiFirst.outranks(TransportKind::WiFi, TransportKind::Bluetooth)
+        );
+        assert!(
+            !TransportPriority::WifiFirst.outranks(TransportKind::Bluetooth, TransportKind::WiFi)
+        );
+        assert!(TransportPriority::BluetoothFirst
+            .outranks(TransportKind::Bluetooth, TransportKind::WiFi));
+    }
+
+    #[test]
+    fn speaker_control_messages_roundtrip() {
+        let command = ControlMessage::SpeakerCommand { active: true };
+        let encoded = serde_json::to_vec(&command).expect("encode");
+        let decoded: ControlMessage = serde_json::from_slice(&encoded).expect("decode");
+        assert!(matches!(
+            decoded,
+            ControlMessage::SpeakerCommand { active: true }
+        ));
+
+        let state = ControlMessage::SpeakerState {
+            allowed: true,
+            active: true,
+            detail: Some("Speakers".into()),
+            udp_port: Some(3033),
+            stream_id: Some(7),
+            udp_key_hex: Some("00".repeat(32)),
+        };
+        let encoded = serde_json::to_vec(&state).expect("encode");
+        let decoded: ControlMessage = serde_json::from_slice(&encoded).expect("decode");
+        assert!(matches!(
+            decoded,
+            ControlMessage::SpeakerState {
+                allowed: true,
+                active: true,
+                ..
+            }
+        ));
     }
 }

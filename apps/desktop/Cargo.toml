@@ -19,6 +19,7 @@ wirewave-core-identity = { workspace = true }
 wirewave-core-session = { workspace = true }
 wirewave-feature-connection = { workspace = true }
 wirewave-feature-settings = { workspace = true }
+wirewave-feature-speaker = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 windows = { workspace = true }

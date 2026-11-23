@@ -16,6 +16,7 @@ use wirewave_core_identity::{fetch_or_create_device_id, DeviceIdentity};
 use wirewave_core_session::SessionManager;
 use wirewave_feature_connection::HomeScreen;
 use wirewave_feature_settings::SettingsScreen;
+use wirewave_feature_speaker::SpeakerService;
 
 /// Result of single-instance mutual exclusion check.
 #[cfg(windows)]
@@ -47,7 +48,9 @@ fn acquire_single_instance() -> SingleInstance {
             // If the mutex already existed the OS returns ERROR_ALREADY_EXISTS via GetLastError.
             let last = unsafe { windows::Win32::Foundation::GetLastError() };
             if last == ERROR_ALREADY_EXISTS {
-                tracing::warn!("WireWave is already running — refusing to start a second instance.");
+                tracing::warn!(
+                    "WireWave is already running — refusing to start a second instance."
+                );
                 SingleInstance::AlreadyRunning
             } else {
                 SingleInstance::Acquired(h)
@@ -64,8 +67,7 @@ fn acquire_single_instance() -> SingleInstance {
 fn main() {
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "info".into()),
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()),
         )
         .init();
 
@@ -113,7 +115,8 @@ fn main() {
         tracing::warn!(%err, "Falling back to ephemeral identity keypair");
         IdentityKeypair::generate()
     });
-    let session = SessionManager::new(identity.clone(), keypair);
+    let speaker_service = std::sync::Arc::new(SpeakerService::new());
+    let session = SessionManager::new(identity.clone(), keypair, speaker_service.clone());
     if compatibility.is_supported() {
         session.start_background_services();
     }
@@ -137,12 +140,13 @@ fn main() {
             let compat = compatibility.clone();
             let id = identity.clone();
             let shared_session = session.clone();
+            let shared_speaker = speaker_service.clone();
 
             cx.open_window(options, move |_window, cx| {
-                let home = cx.new(|cx| HomeScreen::new(shared_session.clone(), cx));
-                let settings = cx.new(|_| {
-                    SettingsScreen::new(&id, compat.clone(), shared_session.clone())
-                });
+                let home = cx
+                    .new(|cx| HomeScreen::new(shared_session.clone(), shared_speaker.clone(), cx));
+                let settings =
+                    cx.new(|_| SettingsScreen::new(&id, compat.clone(), shared_session.clone()));
                 cx.new(|_| AppShell::new(shared_session.clone(), home, settings))
             })
             .expect("open main WireWave window");

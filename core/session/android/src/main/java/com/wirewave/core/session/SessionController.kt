@@ -10,6 +10,7 @@ import com.wirewave.core.crypto.IdentityKeypair
 import com.wirewave.core.crypto.SessionCipher
 import com.wirewave.core.crypto.WireWaveCrypto
 import com.wirewave.core.crypto.toHex
+import com.wirewave.core.crypto.hexToBytesOrNull
 import com.wirewave.core.discovery.DiscoveredHost
 import com.wirewave.core.identity.DeviceIdentity
 import com.wirewave.core.transport.FrameCodec
@@ -35,6 +36,17 @@ import java.io.Closeable
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicReference
+
+data class SpeakerRemoteState(
+    val allowed: Boolean = true,
+    val active: Boolean = false,
+    val hostAddress: String? = null,
+    val udpPort: Int? = null,
+    val streamId: Int? = null,
+    val udpKey: ByteArray? = null,
+    val detail: String? = null
+)
 
 sealed interface ClientSessionState {
     data class Disconnected(val errorMessage: String? = null) : ClientSessionState
@@ -67,6 +79,9 @@ class SessionController(
     private val appContext = context.applicationContext
     private val _state = MutableStateFlow<ClientSessionState>(ClientSessionState.Disconnected())
     val state: StateFlow<ClientSessionState> = _state.asStateFlow()
+    private val _speakerState = MutableStateFlow(SpeakerRemoteState())
+    val speakerState: StateFlow<SpeakerRemoteState> = _speakerState.asStateFlow()
+    private val pendingSpeakerCommand = AtomicReference<Boolean?>(null)
 
     private var connectionJob: Job? = null
     private var activeConnection: Closeable? = null
@@ -91,6 +106,11 @@ class SessionController(
 
     fun submitOtp(code: String) {
         otpInputDeferred?.complete(code.trim())
+    }
+
+    fun requestSpeakerActive(active: Boolean) {
+        if (active && !_speakerState.value.allowed) return
+        pendingSpeakerCommand.set(active)
     }
 
     fun cancelPairing() {
@@ -279,6 +299,7 @@ class SessionController(
             desktopId,
             desktopName,
             host.transport,
+            host.hostAddress,
             SessionCipher(sessionKey, CipherRole.ANDROID),
             input,
             output
@@ -347,6 +368,7 @@ class SessionController(
                         desktopId,
                         desktopName,
                         host.transport,
+                        host.hostAddress,
                         SessionCipher(sessionKey, CipherRole.ANDROID),
                         input,
                         output
@@ -371,6 +393,7 @@ class SessionController(
         desktopId: String,
         pcName: String,
         transport: TransportKind,
+        hostAddress: String,
         cipher: SessionCipher,
         input: DataInputStream,
         output: DataOutputStream
@@ -392,17 +415,48 @@ class SessionController(
                         }
                         FrameCodec.writeFrame(output, activeCipher.encrypt(pong.toString().toByteArray(Charsets.UTF_8)))
                     }
+                    "speaker_state" -> {
+                        val active = msg.optBoolean("active", false)
+                        val key = msg.optString("udp_key_hex")
+                            .takeIf { active && it.length == 64 }
+                            ?.hexToBytesOrNull()
+                        _speakerState.update {
+                            SpeakerRemoteState(
+                                allowed = msg.optBoolean("allowed", false),
+                                active = active,
+                                hostAddress = hostAddress,
+                                udpPort = msg.optInt("udp_port").takeIf { active && it > 0 },
+                                streamId = msg.optInt("stream_id").takeIf { active },
+                                udpKey = key,
+                                detail = msg.optString("detail").takeIf { it.isNotBlank() }
+                            )
+                        }
+                    }
                     "disconnect" -> break
+                }
+                pendingSpeakerCommand.getAndSet(null)?.let { active ->
+                    val command = JSONObject().apply {
+                        put("type", "speaker_command")
+                        put("active", active)
+                    }
+                    FrameCodec.writeFrame(
+                        output,
+                        activeCipher.encrypt(command.toString().toByteArray(Charsets.UTF_8))
+                    )
                 }
                 delay(10)
             }
         }
         onForegroundStateChanged(false, null)
+        pendingSpeakerCommand.set(null)
+        _speakerState.update { SpeakerRemoteState() }
         _state.update { ClientSessionState.Disconnected() }
     }
 
     private fun failSession(message: String) {
         onForegroundStateChanged(false, null)
+        pendingSpeakerCommand.set(null)
+        _speakerState.update { SpeakerRemoteState() }
         _state.update { ClientSessionState.Disconnected(message) }
     }
 

@@ -29,13 +29,18 @@ import com.wirewave.core.config.WireWaveTheme
 @Composable
 fun SpeakerCircleTile(
     isOn: Boolean,
+    isBlocked: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val circleBg = if (isOn) WireWaveTheme.Colors.accentBlue else WireWaveTheme.Colors.bgCard
     val borderColor = if (isOn) WireWaveTheme.Colors.accentBlue else WireWaveTheme.Colors.borderSubtle
     val iconTint = if (isOn) WireWaveTheme.Colors.textPrimary else WireWaveTheme.Colors.textSecondary
-    val statusColor = if (isOn) WireWaveTheme.Colors.accentBlue else WireWaveTheme.Colors.textSecondary
+    val statusColor = when {
+        isBlocked -> WireWaveTheme.Colors.statusErrFg
+        isOn -> WireWaveTheme.Colors.accentBlue
+        else -> WireWaveTheme.Colors.textSecondary
+    }
 
     Column(
         modifier = modifier,
@@ -47,7 +52,7 @@ fun SpeakerCircleTile(
                 .clip(CircleShape)
                 .background(circleBg)
                 .border(1.5.dp, borderColor, CircleShape)
-                .clickable(role = Role.Switch, onClick = onToggle),
+                .clickable(enabled = !isBlocked, role = Role.Switch, onClick = onToggle),
             contentAlignment = Alignment.Center
         ) {
             Icon(
@@ -65,7 +70,11 @@ fun SpeakerCircleTile(
             fontWeight = FontWeight.SemiBold
         )
         Text(
-            text = if (isOn) "On" else "Off",
+            text = when {
+                isBlocked -> "Blocked"
+                isOn -> "On"
+                else -> "Off"
+            },
             color = statusColor,
             fontSize = WireWaveTheme.Typography.badge
         )

@@ -12,12 +12,12 @@ impl SpeakerTileState {
         match status {
             SpeakerStatus::Off => Self {
                 is_on: false,
-                subtitle: "Off".to_string(),
+                subtitle: "Inactive".to_string(),
                 endpoint_hint: None,
             },
             SpeakerStatus::Streaming { endpoint } => Self {
                 is_on: true,
-                subtitle: "On".to_string(),
+                subtitle: "Active".to_string(),
                 endpoint_hint: Some(format!("{} · {}", endpoint.kind.label(), endpoint.name)),
             },
         }

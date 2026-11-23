@@ -21,50 +21,19 @@ pub struct AudioEndpointInfo {
     pub kind: EndpointKind,
 }
 
-const VIRTUAL_SPEAKER_KEYWORDS: &[&str] = &[
-    "wirewave virtual",
-    "virtual speaker",
-    "vb-audio",
-    "voicemeeter",
-    "virtual audio",
-];
-
 /// Pure endpoint selector:
-/// 1. If the user's currently selected Windows default playback device is a virtual speaker, use it.
-/// 2. Otherwise, if any active virtual playback device is present, prefer it.
-/// 3. Otherwise, fall back to the currently selected Windows default playback device.
+/// 1. Use the playback device currently selected by Windows.
+/// 2. If Windows temporarily has no default, use the first active render endpoint.
 pub fn select_playback_endpoint(
     default_endpoint: Option<&AudioEndpointInfo>,
     active_endpoints: &[AudioEndpointInfo],
 ) -> Option<AudioEndpointInfo> {
-    if let Some(def) = default_endpoint {
-        if is_virtual_speaker_name(&def.name) {
-            return Some(AudioEndpointInfo {
-                kind: EndpointKind::VirtualSpeaker,
-                ..def.clone()
-            });
-        }
-    }
-
-    if let Some(virt) = active_endpoints
-        .iter()
-        .find(|ep| is_virtual_speaker_name(&ep.name))
-    {
-        return Some(AudioEndpointInfo {
-            kind: EndpointKind::VirtualSpeaker,
-            ..virt.clone()
-        });
-    }
-
-    default_endpoint.map(|def| AudioEndpointInfo {
-        kind: EndpointKind::SystemDefault,
-        ..def.clone()
-    })
-}
-
-pub fn is_virtual_speaker_name(name: &str) -> bool {
-    let lower = name.to_ascii_lowercase();
-    VIRTUAL_SPEAKER_KEYWORDS.iter().any(|kw| lower.contains(kw))
+    default_endpoint
+        .or_else(|| active_endpoints.first())
+        .map(|endpoint| AudioEndpointInfo {
+            kind: EndpointKind::SystemDefault,
+            ..endpoint.clone()
+        })
 }
 
 /// Enumerates active Windows render devices and resolves the optimal endpoint.
@@ -72,7 +41,8 @@ pub fn is_virtual_speaker_name(name: &str) -> bool {
 pub fn detect_active_playback_endpoint() -> Option<AudioEndpointInfo> {
     use windows::Win32::Devices::FunctionDiscovery::PKEY_Device_FriendlyName;
     use windows::Win32::Media::Audio::{
-        eConsole, eRender, IMMDevice, IMMDeviceEnumerator, MMDeviceEnumerator, DEVICE_STATE_ACTIVE,
+        eMultimedia, eRender, IMMDevice, IMMDeviceEnumerator, MMDeviceEnumerator,
+        DEVICE_STATE_ACTIVE,
     };
     use windows::Win32::System::Com::{
         CoCreateInstance, CoInitializeEx, CLSCTX_ALL, COINIT_MULTITHREADED, STGM_READ,
@@ -96,7 +66,7 @@ pub fn detect_active_playback_endpoint() -> Option<AudioEndpointInfo> {
             CoCreateInstance(&MMDeviceEnumerator, None, CLSCTX_ALL).ok()?;
 
         let default_ep = enumerator
-            .GetDefaultAudioEndpoint(eRender, eConsole)
+            .GetDefaultAudioEndpoint(eRender, eMultimedia)
             .ok()
             .and_then(|d| read_endpoint(&d));
 
@@ -134,16 +104,28 @@ mod tests {
     }
 
     #[test]
-    fn prefers_virtual_speaker_when_present_else_default() {
+    fn selects_windows_default_even_when_virtual_speaker_is_present() {
         let def = ep("1", "Speakers (Realtek High Definition Audio)");
         let virt = ep("2", "VB-Audio Virtual Cable");
 
-        let chosen = select_playback_endpoint(Some(&def), &[def.clone(), virt.clone()]).expect("some");
-        assert_eq!(chosen.id, "2");
-        assert_eq!(chosen.kind, EndpointKind::VirtualSpeaker);
+        let chosen =
+            select_playback_endpoint(Some(&def), &[def.clone(), virt.clone()]).expect("some");
+        assert_eq!(chosen.id, "1");
+        assert_eq!(chosen.kind, EndpointKind::SystemDefault);
 
         let fallback = select_playback_endpoint(Some(&def), &[def.clone()]).expect("some");
         assert_eq!(fallback.id, "1");
         assert_eq!(fallback.kind, EndpointKind::SystemDefault);
+    }
+
+    #[test]
+    fn falls_back_to_first_active_endpoint_when_windows_has_no_default() {
+        let first = ep("1", "Speakers (USB Audio)");
+        let second = ep("2", "HDMI Output");
+
+        let chosen = select_playback_endpoint(None, &[first.clone(), second]).expect("some");
+
+        assert_eq!(chosen.id, first.id);
+        assert_eq!(chosen.kind, EndpointKind::SystemDefault);
     }
 }

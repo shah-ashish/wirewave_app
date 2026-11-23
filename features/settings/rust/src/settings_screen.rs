@@ -9,6 +9,10 @@ use crate::{
         devices_logic::DeviceTab,
         devices_ui::{render_devices_section, HasDeviceListActions},
     },
+    services::{
+        services_logic::ServicesSettingsState,
+        services_ui::{render_services_section, HasServicesSettingsActions},
+    },
     update::{render_update_section, update_logic::HasUpdateController, UpdateController},
 };
 use gpui::{div, prelude::*, px, Context, Render, Window};
@@ -67,6 +71,13 @@ impl HasConnectionSettingsActions for SettingsScreen {
     }
 }
 
+impl HasServicesSettingsActions for SettingsScreen {
+    fn toggle_speaker_permission(&mut self) {
+        let current = self.session.snapshot().preferences.speaker_service_allowed;
+        self.session.set_speaker_service_allowed(!current);
+    }
+}
+
 impl HasDeviceListActions for SettingsScreen {
     fn select_device_tab(&mut self, tab: DeviceTab) {
         self.device_tab = tab;
@@ -98,9 +109,11 @@ impl Render for SettingsScreen {
             SessionState::Connected(active) => Some(active.device_name.clone()),
             SessionState::Idle | SessionState::Pairing(_) => None,
         };
-        let about = load_about_snapshot(&self.identity, self.compatibility.clone(), connected_phone);
+        let about =
+            load_about_snapshot(&self.identity, self.compatibility.clone(), connected_phone);
         let conn_state =
             ConnectionSettingsState::from_prefs(snapshot.preferences, self.priority_dropdown_open);
+        let services_state = ServicesSettingsState::from_prefs(snapshot.preferences);
 
         let content = div()
             .w_full()
@@ -110,6 +123,7 @@ impl Render for SettingsScreen {
             .gap(px(m.spacing_lg))
             .child(render_update_section(&self.updater, cx))
             .child(render_connection_section(&conn_state, cx))
+            .child(render_services_section(&services_state, cx))
             .child(render_devices_section(&snapshot, self.device_tab, cx))
             .child(render_about_section(&about));
 

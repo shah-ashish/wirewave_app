@@ -66,6 +66,7 @@ fun ConnectedHomeScreen(
     onOpenSettings: () -> Unit,
     brandMark: @Composable () -> Unit,
     isSpeakerOn: Boolean = false,
+    isSpeakerBlocked: Boolean = false,
     onToggleSpeaker: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
@@ -169,6 +170,7 @@ fun ConnectedHomeScreen(
             ) {
                 SpeakerCircleTile(
                     isOn = isSpeakerOn,
+                    isBlocked = isSpeakerBlocked,
                     onToggle = onToggleSpeaker
                 )
                 remainingCircles.forEach { spec ->
