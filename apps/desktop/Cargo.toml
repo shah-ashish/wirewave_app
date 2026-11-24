@@ -21,6 +21,7 @@ wirewave-feature-connection = { workspace = true }
 wirewave-feature-settings = { workspace = true }
 wirewave-feature-speaker = { workspace = true }
 wirewave-feature-mic = { workspace = true }
+wirewave-feature-mouse = { workspace = true }
 
 [target.'cfg(windows)'.dependencies]
 windows = { workspace = true }

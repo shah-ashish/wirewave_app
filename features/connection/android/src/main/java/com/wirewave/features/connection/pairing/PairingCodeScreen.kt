@@ -19,11 +19,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Backspace
+import androidx.compose.material.icons.automirrored.rounded.Backspace
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.DesktopWindows
-import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -103,7 +103,7 @@ fun PairingCodeScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = Icons.Rounded.Tune,
+                    imageVector = Icons.Rounded.Settings,
                     contentDescription = "Settings",
                     tint = WireWaveTheme.Colors.textPrimary,
                     modifier = Modifier.size(20.dp)
@@ -254,7 +254,7 @@ private fun NumericKeypad(
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Rounded.Backspace,
+                                imageVector = Icons.AutoMirrored.Rounded.Backspace,
                                 contentDescription = "Delete",
                                 tint = WireWaveTheme.Colors.textPrimary,
                                 modifier = Modifier.size(22.dp)

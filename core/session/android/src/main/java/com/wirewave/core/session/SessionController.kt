@@ -3,6 +3,7 @@ package com.wirewave.core.session
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import com.wirewave.core.stream.ChannelId
 import com.wirewave.core.config.AppConfig
 import com.wirewave.core.crypto.EphemeralX25519
 import com.wirewave.core.crypto.CipherRole
@@ -40,26 +41,6 @@ import java.net.Socket
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
 
-data class SpeakerRemoteState(
-    val allowed: Boolean = true,
-    val active: Boolean = false,
-    val hostAddress: String? = null,
-    val udpPort: Int? = null,
-    val streamId: Int? = null,
-    val udpKey: ByteArray? = null,
-    val detail: String? = null
-)
-
-data class MicRemoteState(
-    val allowed: Boolean = false,
-    val active: Boolean = false,
-    val hostAddress: String? = null,
-    val udpPort: Int? = null,
-    val streamId: Int? = null,
-    val udpKey: ByteArray? = null,
-    val detail: String? = null
-)
-
 sealed interface ClientSessionState {
     data class Disconnected(val errorMessage: String? = null) : ClientSessionState
     data class Connecting(val host: DiscoveredHost) : ClientSessionState
@@ -91,11 +72,29 @@ class SessionController(
     private val appContext = context.applicationContext
     private val _state = MutableStateFlow<ClientSessionState>(ClientSessionState.Disconnected())
     val state: StateFlow<ClientSessionState> = _state.asStateFlow()
-    private val _speakerState = MutableStateFlow(SpeakerRemoteState())
-    val speakerState: StateFlow<SpeakerRemoteState> = _speakerState.asStateFlow()
-    private val _micState = MutableStateFlow(MicRemoteState())
-    val micState: StateFlow<MicRemoteState> = _micState.asStateFlow()
+    private val _speakerState = MutableStateFlow(FeatureRemoteState(channel = ChannelId.SPEAKER, allowed = true))
+    val speakerState: StateFlow<FeatureRemoteState> = _speakerState.asStateFlow()
+    private val _micState = MutableStateFlow(FeatureRemoteState(channel = ChannelId.MIC, allowed = false))
+    val micState: StateFlow<FeatureRemoteState> = _micState.asStateFlow()
+    private val _mouseState = MutableStateFlow(FeatureRemoteState(channel = ChannelId.MOUSE, allowed = true))
+    val mouseState: StateFlow<FeatureRemoteState> = _mouseState.asStateFlow()
     private val outboundControls = AtomicReference<OutboundControlQueue?>(null)
+
+    fun featureState(channel: ChannelId): StateFlow<FeatureRemoteState> = when (channel) {
+        ChannelId.SPEAKER -> speakerState
+        ChannelId.MIC -> micState
+        ChannelId.MOUSE -> mouseState
+        else -> MutableStateFlow(FeatureRemoteState(channel = channel, allowed = false)).asStateFlow()
+    }
+
+    fun requestFeatureActive(channel: ChannelId, active: Boolean) {
+        when (channel) {
+            ChannelId.SPEAKER -> requestSpeakerActive(active)
+            ChannelId.MIC -> requestMicActive(active)
+            ChannelId.MOUSE -> requestMouseActive(active)
+            else -> outboundControls.get()?.trySendFeature(channel, active)
+        }
+    }
 
     private var connectionJob: Job? = null
     private var activeConnection: Closeable? = null
@@ -130,6 +129,15 @@ class SessionController(
     fun requestMicActive(active: Boolean) {
         if (active && !_micState.value.allowed) return
         outboundControls.get()?.trySendMic(active)
+    }
+
+    fun requestMouseActive(active: Boolean) {
+        if (active && !_mouseState.value.allowed) return
+        outboundControls.get()?.trySendFeature(ChannelId.MOUSE, active)
+    }
+
+    fun sendKeyInput(text: String? = null, keyCode: String? = null) {
+        outboundControls.get()?.trySendKeyInput(text, keyCode)
     }
 
     fun cancelPairing() {
@@ -475,6 +483,24 @@ class SessionController(
                                         )
                                     }
                                 }
+                                "mouse_state" -> {
+                                    val active = msg.optBoolean("active", false)
+                                    val key = msg.optString("udp_key_hex")
+                                        .takeIf { active && it.length == 64 }
+                                        ?.hexToBytesOrNull()
+                                    _mouseState.update {
+                                        FeatureRemoteState(
+                                            channel = ChannelId.MOUSE,
+                                            allowed = msg.optBoolean("allowed", false),
+                                            active = active,
+                                            hostAddress = hostAddress,
+                                            udpPort = msg.optInt("udp_port").takeIf { active && it > 0 },
+                                            streamId = msg.optInt("stream_id").takeIf { active },
+                                            udpKey = key,
+                                            detail = msg.optString("detail").takeIf { it.isNotBlank() }
+                                        )
+                                    }
+                                }
                                 "disconnect" -> break
                             }
                         }
@@ -488,8 +514,9 @@ class SessionController(
             outboundControls.compareAndSet(controls, null)
             controls.close()
             onForegroundStateChanged(false, null)
-            _speakerState.update { SpeakerRemoteState() }
-            _micState.update { MicRemoteState() }
+            _speakerState.update { FeatureRemoteState(channel = ChannelId.SPEAKER, allowed = true) }
+            _micState.update { FeatureRemoteState(channel = ChannelId.MIC, allowed = false) }
+            _mouseState.update { FeatureRemoteState(channel = ChannelId.MOUSE, allowed = true) }
             _state.update { ClientSessionState.Disconnected() }
         }
     }
@@ -497,8 +524,9 @@ class SessionController(
     private fun failSession(message: String) {
         onForegroundStateChanged(false, null)
         outboundControls.getAndSet(null)?.close()
-        _speakerState.update { SpeakerRemoteState() }
-        _micState.update { MicRemoteState() }
+        _speakerState.update { FeatureRemoteState(channel = ChannelId.SPEAKER, allowed = true) }
+        _micState.update { FeatureRemoteState(channel = ChannelId.MIC, allowed = false) }
+        _mouseState.update { FeatureRemoteState(channel = ChannelId.MOUSE, allowed = true) }
         _state.update { ClientSessionState.Disconnected(message) }
     }
 

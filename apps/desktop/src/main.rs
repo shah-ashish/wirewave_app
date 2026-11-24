@@ -9,15 +9,53 @@ use gpui::{
     WindowDecorations, WindowOptions,
 };
 use shell::AppShell;
-use wirewave_core_compatibility::check_compatibility;
+use wirewave_core_compatibility::CompatibilityChecker;
 use wirewave_core_config::APP_CONFIG;
 use wirewave_core_crypto::{fetch_or_create_keypair, IdentityKeypair};
-use wirewave_core_identity::{fetch_or_create_device_id, DeviceIdentity};
-use wirewave_core_session::SessionManager;
-use wirewave_feature_connection::HomeScreen;
+use wirewave_core_identity::{DeviceIdentity, DeviceIdentityStore};
+use wirewave_core_session::{FeatureRegistry, SessionManager};
+use wirewave_feature_connection::{ActiveServiceSlots, HomeScreen};
 use wirewave_feature_settings::SettingsScreen;
-use wirewave_feature_speaker::SpeakerService;
-use wirewave_feature_mic::MicService;
+use wirewave_feature_speaker::{render_speaker_tile, SpeakerService, SpeakerTileState};
+use wirewave_feature_mic::{render_mic_tile, MicService, MicTileState};
+
+/// Injected implementation of active service slots for Desktop Home, composed at the application root.
+struct DesktopServiceSlots {
+    speaker: std::sync::Arc<SpeakerService>,
+    mic: std::sync::Arc<MicService>,
+    mouse: std::sync::Arc<wirewave_feature_mouse::MouseService>,
+}
+
+impl ActiveServiceSlots for DesktopServiceSlots {
+    fn render_speaker_tile(&self) -> gpui::AnyElement {
+        use gpui::IntoElement;
+        let state = SpeakerTileState::from_status(&self.speaker.status());
+        render_speaker_tile(&state).into_any_element()
+    }
+
+    fn render_mic_tile(&self) -> gpui::AnyElement {
+        use gpui::IntoElement;
+        let state = MicTileState::from_status(&self.mic.status());
+        render_mic_tile(&state).into_any_element()
+    }
+
+    fn render_mouse_tile(&self) -> gpui::AnyElement {
+        use gpui::IntoElement;
+        let is_active = self.mouse.is_running();
+        let state = wirewave_feature_mouse::MouseTileState::new(is_active);
+        wirewave_feature_mouse::render_mouse_tile(&state).into_any_element()
+    }
+
+    fn stop_all(&self) {
+        self.speaker.stop();
+        self.mic.stop();
+        self.mouse.stop();
+    }
+
+    fn is_any_running(&self) -> bool {
+        self.speaker.is_running() || self.mic.is_running() || self.mouse.is_running()
+    }
+}
 
 /// Result of single-instance mutual exclusion check.
 #[cfg(windows)]
@@ -89,21 +127,26 @@ fn main() {
         }
     };
 
-    // Stage 1 background bootstrap (unchanged):
-    let compatibility = check_compatibility();
+    // Stage 1 background bootstrap:
+    let compatibility_checker = CompatibilityChecker::new();
+    let compatibility = compatibility_checker.check();
     tracing::info!(
         os = %compatibility.detected_os,
         supported = compatibility.is_supported(),
         "Bootstrap compatibility check completed"
     );
 
-    let identity = fetch_or_create_device_id().unwrap_or_else(|err| {
-        tracing::warn!(%err, "Falling back to ephemeral device identity");
-        DeviceIdentity {
-            schema_version: 1,
-            device_id: wirewave_core_identity::generate_device_id(),
-        }
-    });
+    let identity_store = DeviceIdentityStore::default_store().ok();
+    let identity = identity_store
+        .as_ref()
+        .and_then(|store| store.fetch_or_create().ok())
+        .unwrap_or_else(|| {
+            tracing::warn!("Falling back to ephemeral device identity");
+            DeviceIdentity {
+                schema_version: 1,
+                device_id: wirewave_core_identity::generate_device_id(),
+            }
+        });
     tracing::info!(
         app_id = APP_CONFIG.app_id,
         update_app_id = APP_CONFIG.update_app_id,
@@ -116,13 +159,21 @@ fn main() {
         tracing::warn!(%err, "Falling back to ephemeral identity keypair");
         IdentityKeypair::generate()
     });
+
     let speaker_service = std::sync::Arc::new(SpeakerService::new());
     let mic_service = std::sync::Arc::new(MicService::new());
+    let mouse_service = std::sync::Arc::new(wirewave_feature_mouse::MouseService::new());
+
+    // Polymorphic feature registry:
+    let feature_registry = std::sync::Arc::new(FeatureRegistry::new());
+    feature_registry.register(speaker_service.clone());
+    feature_registry.register(mic_service.clone());
+    feature_registry.register(mouse_service.clone());
+
     let session = SessionManager::new(
         identity.clone(),
         keypair,
-        speaker_service.clone(),
-        mic_service.clone(),
+        feature_registry,
     );
     if compatibility.is_supported() {
         session.start_background_services();
@@ -147,17 +198,18 @@ fn main() {
             let compat = compatibility.clone();
             let id = identity.clone();
             let shared_session = session.clone();
-            let shared_speaker = speaker_service.clone();
-            let shared_mic = mic_service.clone();
+            let slots = std::sync::Arc::new(DesktopServiceSlots {
+                speaker: speaker_service.clone(),
+                mic: mic_service.clone(),
+                mouse: mouse_service.clone(),
+            });
 
             cx.open_window(options, move |_window, cx| {
-                let home = cx
-                    .new(|cx| HomeScreen::new(
-                        shared_session.clone(),
-                        shared_speaker.clone(),
-                        shared_mic.clone(),
-                        cx,
-                    ));
+                let home = cx.new(|cx| HomeScreen::new(
+                    shared_session.clone(),
+                    slots,
+                    cx,
+                ));
                 let settings =
                     cx.new(|_| SettingsScreen::new(&id, compat.clone(), shared_session.clone()));
                 cx.new(|_| AppShell::new(shared_session.clone(), home, settings))

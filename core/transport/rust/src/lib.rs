@@ -138,6 +138,23 @@ pub enum ControlMessage {
         stream_id: Option<u32>,
         udp_key_hex: Option<String>,
     },
+    MouseCommand {
+        active: bool,
+    },
+    MouseState {
+        allowed: bool,
+        active: bool,
+        detail: Option<String>,
+        udp_port: Option<u16>,
+        stream_id: Option<u32>,
+        udp_key_hex: Option<String>,
+    },
+    KeyInput {
+        #[serde(default)]
+        text: Option<String>,
+        #[serde(default)]
+        key_code: Option<String>,
+    },
     Disconnect {
         reason: String,
     },

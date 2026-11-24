@@ -16,6 +16,97 @@ pub struct HostAnnouncement {
     pub busy: bool,
 }
 
+/// Provides dynamic state and cryptographic signatures for discovery announcements.
+pub trait DiscoveryStateProvider: Send + Sync + 'static {
+    fn is_busy(&self) -> bool;
+    fn sign_announcement(&self, payload: &[u8]) -> Vec<u8>;
+}
+
+impl<FSign, FBusy> DiscoveryStateProvider for (FSign, FBusy)
+where
+    FSign: Fn(&[u8]) -> Vec<u8> + Send + Sync + 'static,
+    FBusy: Fn() -> bool + Send + Sync + 'static,
+{
+    fn is_busy(&self) -> bool {
+        (self.1)()
+    }
+    fn sign_announcement(&self, payload: &[u8]) -> Vec<u8> {
+        (self.0)(payload)
+    }
+}
+
+/// Encapsulates the WireWave-exclusive authenticated UDP discovery responder.
+pub struct DiscoveryResponderService {
+    desktop_id: String,
+    pc_name: String,
+    desktop_public_key_hex: String,
+}
+
+impl DiscoveryResponderService {
+    pub fn new(desktop_id: String, pc_name: String, desktop_public_key_hex: String) -> Self {
+        Self {
+            desktop_id,
+            pc_name,
+            desktop_public_key_hex,
+        }
+    }
+
+    /// Runs the UDP discovery responder loop until cancelled or error.
+    pub async fn run<P: DiscoveryStateProvider>(&self, provider: P) -> std::io::Result<()> {
+        let port = APP_CONFIG.connection.udp_discovery_port;
+        let bind_addr = SocketAddr::from(([0, 0, 0, 0], port));
+        let socket = UdpSocket::bind(bind_addr).await?;
+        tracing::info!(port, "Authenticated WireWave UDP discovery responder listening");
+
+        let mut buf = [0u8; 1024];
+        let mut cached: Option<(bool, std::time::Instant, Vec<u8>)> = None;
+        loop {
+            let Ok((len, peer)) = socket.recv_from(&mut buf).await else {
+                continue;
+            };
+            if !is_probe(&buf[..len]) {
+                continue;
+            }
+
+            let busy = provider.is_busy();
+            let now = std::time::Instant::now();
+            let reply = match &cached {
+                Some((c_busy, c_time, c_bytes))
+                    if *c_busy == busy && now.duration_since(*c_time) < std::time::Duration::from_secs(1) =>
+                {
+                    c_bytes.clone()
+                }
+                _ => {
+                    let announcement = HostAnnouncement {
+                        desktop_id: self.desktop_id.clone(),
+                        pc_name: self.pc_name.clone(),
+                        tcp_port: APP_CONFIG.connection.tcp_port,
+                        bt_service_uuid: APP_CONFIG.connection.bt_service_uuid.to_string(),
+                        busy,
+                    };
+                    let Ok(json) = serde_json::to_vec(&announcement) else {
+                        continue;
+                    };
+                    let signing_payload = discovery_signing_payload(&json);
+                    let signature = provider.sign_announcement(&signing_payload);
+                    let public_key = hex::decode(&self.desktop_public_key_hex)
+                        .ok()
+                        .and_then(|bytes| bytes.try_into().ok());
+                    let signature: Option<[u8; SIGNATURE_LEN]> = signature.try_into().ok();
+                    let Some((public_key, signature)) = public_key.zip(signature) else {
+                        continue;
+                    };
+                    let encoded = encode_signed_announcement(&json, &public_key, &signature);
+                    cached = Some((busy, now, encoded.clone()));
+                    encoded
+                }
+            };
+
+            let _ = socket.send_to(&reply, peer).await;
+        }
+    }
+}
+
 /// Bytes signed by the desktop identity key for discovery announcements.
 pub fn discovery_signing_payload(payload: &[u8]) -> Vec<u8> {
     let mut signed = Vec::with_capacity(
@@ -51,7 +142,7 @@ pub fn is_probe(raw: &[u8]) -> bool {
     raw == encode_probe()
 }
 
-/// Runs the WireWave-only authenticated UDP discovery responder on the configured port.
+/// Legacy wrapper forwarding to `DiscoveryResponderService`.
 pub async fn run_udp_discovery_responder(
     desktop_id: String,
     pc_name: String,
@@ -59,57 +150,8 @@ pub async fn run_udp_discovery_responder(
     sign_announcement: impl Fn(&[u8]) -> Vec<u8> + Send + Sync + 'static,
     is_busy: impl Fn() -> bool + Send + Sync + 'static,
 ) -> std::io::Result<()> {
-    let port = APP_CONFIG.connection.udp_discovery_port;
-    let bind_addr = SocketAddr::from(([0, 0, 0, 0], port));
-    let socket = UdpSocket::bind(bind_addr).await?;
-    tracing::info!(port, "Authenticated WireWave UDP discovery responder listening");
-
-    let mut buf = [0u8; 1024];
-    let mut cached: Option<(bool, std::time::Instant, Vec<u8>)> = None;
-    loop {
-        let Ok((len, peer)) = socket.recv_from(&mut buf).await else {
-            continue;
-        };
-        if !is_probe(&buf[..len]) {
-            continue;
-        }
-
-        let busy = is_busy();
-        let now = std::time::Instant::now();
-        let reply = match &cached {
-            Some((c_busy, c_time, c_bytes))
-                if *c_busy == busy && now.duration_since(*c_time) < std::time::Duration::from_secs(1) =>
-            {
-                c_bytes.clone()
-            }
-            _ => {
-                let announcement = HostAnnouncement {
-                    desktop_id: desktop_id.clone(),
-                    pc_name: pc_name.clone(),
-                    tcp_port: APP_CONFIG.connection.tcp_port,
-                    bt_service_uuid: APP_CONFIG.connection.bt_service_uuid.to_string(),
-                    busy,
-                };
-                let Ok(json) = serde_json::to_vec(&announcement) else {
-                    continue;
-                };
-                let signing_payload = discovery_signing_payload(&json);
-                let signature = sign_announcement(&signing_payload);
-                let public_key = hex::decode(&desktop_public_key_hex)
-                    .ok()
-                    .and_then(|bytes| bytes.try_into().ok());
-                let signature: Option<[u8; SIGNATURE_LEN]> = signature.try_into().ok();
-                let Some((public_key, signature)) = public_key.zip(signature) else {
-                    continue;
-                };
-                let encoded = encode_signed_announcement(&json, &public_key, &signature);
-                cached = Some((busy, now, encoded.clone()));
-                encoded
-            }
-        };
-
-        let _ = socket.send_to(&reply, peer).await;
-    }
+    let service = DiscoveryResponderService::new(desktop_id, pc_name, desktop_public_key_hex);
+    service.run((sign_announcement, is_busy)).await
 }
 
 #[cfg(test)]

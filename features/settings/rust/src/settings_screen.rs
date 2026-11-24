@@ -93,6 +93,11 @@ impl HasServicesSettingsActions for SettingsScreen {
         let current = self.session.snapshot().preferences.mic_service_allowed;
         self.session.set_mic_service_allowed(!current);
     }
+
+    fn toggle_mouse_permission(&mut self) {
+        let current = self.session.snapshot().preferences.mouse_service_allowed;
+        self.session.set_mouse_service_allowed(!current);
+    }
 }
 
 impl HasDeviceListActions for SettingsScreen {

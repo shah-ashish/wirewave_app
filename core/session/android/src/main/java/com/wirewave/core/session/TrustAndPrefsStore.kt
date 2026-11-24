@@ -12,6 +12,12 @@ data class ConnectionPrefs(
     val keepAliveInBackground: Boolean = true
 )
 
+data class MousePrefs(
+    val pointerSpeed: Float = 1.0f,
+    val scrollSpeed: Float = 1.0f,
+    val naturalScroll: Boolean = true
+)
+
 data class TrustedDesktop(
     val desktopId: String,
     val pcName: String,
@@ -22,6 +28,25 @@ class TrustAndPrefsStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val _connectionPrefs = MutableStateFlow(loadPrefs())
     val connectionPrefs: StateFlow<ConnectionPrefs> = _connectionPrefs.asStateFlow()
+    private val _mousePrefs = MutableStateFlow(loadMousePrefs())
+    val mousePrefs: StateFlow<MousePrefs> = _mousePrefs.asStateFlow()
+
+    fun setPointerSpeed(speed: Float) {
+        val clamped = speed.coerceIn(0.5f, 3.0f)
+        prefs.edit().putFloat(KEY_MOUSE_POINTER_SPEED, clamped).apply()
+        _mousePrefs.update { it.copy(pointerSpeed = clamped) }
+    }
+
+    fun setScrollSpeed(speed: Float) {
+        val clamped = speed.coerceIn(0.5f, 3.0f)
+        prefs.edit().putFloat(KEY_MOUSE_SCROLL_SPEED, clamped).apply()
+        _mousePrefs.update { it.copy(scrollSpeed = clamped) }
+    }
+
+    fun setNaturalScroll(natural: Boolean) {
+        prefs.edit().putBoolean(KEY_MOUSE_NATURAL_SCROLL, natural).apply()
+        _mousePrefs.update { it.copy(naturalScroll = natural) }
+    }
 
     fun setAutoConnect(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_AUTO_CONNECT, enabled).apply()
@@ -106,10 +131,19 @@ class TrustAndPrefsStore(context: Context) {
         keepAliveInBackground = prefs.getBoolean(KEY_KEEP_ALIVE, true)
     )
 
+    private fun loadMousePrefs(): MousePrefs = MousePrefs(
+        pointerSpeed = prefs.getFloat(KEY_MOUSE_POINTER_SPEED, 1.0f).coerceIn(0.5f, 3.0f),
+        scrollSpeed = prefs.getFloat(KEY_MOUSE_SCROLL_SPEED, 1.0f).coerceIn(0.5f, 3.0f),
+        naturalScroll = prefs.getBoolean(KEY_MOUSE_NATURAL_SCROLL, true)
+    )
+
     companion object {
         private const val PREFS_NAME = "wirewave_session_store"
         private const val KEY_AUTO_CONNECT = "auto_connect"
         private const val KEY_KEEP_ALIVE = "keep_alive_bg"
+        private const val KEY_MOUSE_POINTER_SPEED = "mouse_pointer_speed"
+        private const val KEY_MOUSE_SCROLL_SPEED = "mouse_scroll_speed"
+        private const val KEY_MOUSE_NATURAL_SCROLL = "mouse_natural_scroll"
         private const val KEY_LAST_DESKTOP_ID = "last_desktop_id"
         private const val KEY_EXPLICIT_DISCONNECT = "explicit_disconnect"
         private const val TRUST_PREFIX = "trusted_"

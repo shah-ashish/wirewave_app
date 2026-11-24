@@ -1,30 +1,28 @@
 use crate::{
+    active_channel::ActiveControlChannel,
+    feature_host::FeatureHost,
+    feature_registry::{FeatureRegistry, SharedFeatureRegistry},
+    handshake::{decode_x25519, send_control, HandshakeCoordinator},
     settings_store::{ConnectionPreferences, PreferencesStore},
     trust_store::{TrustStore, TrustedDevice},
 };
-use rand_core::{OsRng, RngCore};
 use std::{
     net::SocketAddr,
     sync::{Arc, RwLock},
-    time::{Duration, Instant},
+    time::Instant,
 };
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::watch,
-    time,
 };
 use wirewave_core_config::APP_CONFIG;
-use wirewave_core_crypto::{
-    compute_exchange_hash, derive_session_key, generate_otp, verify_otp_proof,
-    verify_peer_signature, CipherRole, IdentityKeypair, SessionCipher,
-};
+use wirewave_core_crypto::IdentityKeypair;
 use wirewave_core_discovery::run_udp_discovery_responder;
 use wirewave_core_identity::DeviceIdentity;
-use wirewave_core_stream::{derive_udp_key, UdpDataChannel};
+use wirewave_core_stream::{ChannelId, UdpDataChannel};
 use wirewave_core_transport::{
-    read_frame, write_frame, ControlMessage, RejectCode, TransportKind, TransportPriority,
+    read_frame, ControlMessage, RejectCode, TransportKind, TransportPriority,
 };
-use x25519_dalek::{EphemeralSecret, PublicKey};
 
 #[derive(Debug, Clone)]
 pub struct PendingPairing {
@@ -97,6 +95,7 @@ struct SessionInner {
     bluetooth_listening: bool,
     speaker_policy_tx: watch::Sender<bool>,
     mic_policy_tx: watch::Sender<bool>,
+    mouse_policy_tx: watch::Sender<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -107,12 +106,14 @@ struct HandshakeReservation {
 
 pub type SharedSession = Arc<SessionManager>;
 
+/// Legacy trait for Speaker feature compatibility.
 pub trait SpeakerStreamHost: Send + Sync {
     fn start_stream(&self, channel: Arc<UdpDataChannel>, runtime: tokio::runtime::Handle);
     fn stop_stream(&self);
     fn status_detail(&self) -> Option<String>;
 }
 
+/// Legacy trait for Microphone feature compatibility.
 pub trait MicStreamHost: Send + Sync {
     fn start_stream(
         &self,
@@ -123,23 +124,84 @@ pub trait MicStreamHost: Send + Sync {
     fn available_driver(&self) -> Option<String>;
 }
 
-/// Owns the 1-to-1 desktop session lock, trust agreement store, priority arbitration,
-/// and background encrypted listeners (Wi-Fi TCP + UDP authenticated discovery).
+/// Adapter converting legacy SpeakerStreamHost into polymorphic FeatureHost.
+struct SpeakerHostAdapter(Arc<dyn SpeakerStreamHost>);
+impl FeatureHost for SpeakerHostAdapter {
+    fn channel_id(&self) -> ChannelId { ChannelId::Speaker }
+    fn display_name(&self) -> &'static str { "Speaker" }
+    fn is_allowed(&self, prefs: &ConnectionPreferences) -> bool { prefs.speaker_service_allowed }
+    fn status_detail(&self) -> Option<String> { self.0.status_detail() }
+    fn requires_peer_hello(&self) -> bool { true }
+    fn start_stream(
+        &self,
+        channel: Arc<UdpDataChannel>,
+        runtime: tokio::runtime::Handle,
+    ) -> Result<Option<String>, String> {
+        self.0.start_stream(channel, runtime);
+        Ok(self.status_detail())
+    }
+    fn stop_stream(&self) { self.0.stop_stream(); }
+    fn make_state_message(
+        &self,
+        allowed: bool,
+        active: bool,
+        detail: Option<String>,
+        udp_port: Option<u16>,
+        stream_id: Option<u32>,
+        udp_key_hex: Option<String>,
+    ) -> ControlMessage {
+        ControlMessage::SpeakerState { allowed, active, detail, udp_port, stream_id, udp_key_hex }
+    }
+}
+
+/// Adapter converting legacy MicStreamHost into polymorphic FeatureHost.
+struct MicHostAdapter(Arc<dyn MicStreamHost>);
+impl FeatureHost for MicHostAdapter {
+    fn channel_id(&self) -> ChannelId { ChannelId::Mic }
+    fn display_name(&self) -> &'static str { "Microphone" }
+    fn is_allowed(&self, prefs: &ConnectionPreferences) -> bool {
+        prefs.mic_service_allowed && self.0.available_driver().is_some()
+    }
+    fn status_detail(&self) -> Option<String> { self.0.available_driver() }
+    fn start_stream(
+        &self,
+        channel: Arc<UdpDataChannel>,
+        runtime: tokio::runtime::Handle,
+    ) -> Result<Option<String>, String> {
+        self.0.start_stream(channel, runtime).map(Some)
+    }
+    fn stop_stream(&self) { self.0.stop_stream(); }
+    fn make_state_message(
+        &self,
+        allowed: bool,
+        active: bool,
+        detail: Option<String>,
+        udp_port: Option<u16>,
+        stream_id: Option<u32>,
+        udp_key_hex: Option<String>,
+    ) -> ControlMessage {
+        ControlMessage::MicState { allowed, active, detail, udp_port, stream_id, udp_key_hex }
+    }
+}
+
+/// Coordinates the 1-to-1 desktop session lock, trust store, priority arbitration,
+/// and delegates handshakes and active control loop handling to focused collaborator objects.
 pub struct SessionManager {
     desktop_id: String,
     pc_name: String,
-    keypair: IdentityKeypair,
+    keypair: Arc<IdentityKeypair>,
     inner: RwLock<SessionInner>,
-    speaker_host: Arc<dyn SpeakerStreamHost>,
-    mic_host: Arc<dyn MicStreamHost>,
+    feature_registry: SharedFeatureRegistry,
+    handshake: HandshakeCoordinator,
+    active_channel: ActiveControlChannel,
 }
 
 impl SessionManager {
+    /// Preferred constructor using polymorphic `FeatureRegistry`.
     pub fn new(
         identity: DeviceIdentity,
         keypair: IdentityKeypair,
-        speaker_host: Arc<dyn SpeakerStreamHost>,
-        mic_host: Arc<dyn MicStreamHost>,
+        feature_registry: SharedFeatureRegistry,
     ) -> SharedSession {
         let pc_name = hostname::get()
             .ok()
@@ -150,6 +212,16 @@ impl SessionManager {
         let prefs = PreferencesStore::load_default();
         let (speaker_policy_tx, _) = watch::channel(prefs.get().speaker_service_allowed);
         let (mic_policy_tx, _) = watch::channel(prefs.get().mic_service_allowed);
+        let (mouse_policy_tx, _) = watch::channel(prefs.get().mouse_service_allowed);
+
+        let keypair = Arc::new(keypair);
+        let handshake = HandshakeCoordinator::new(
+            identity.device_id.clone(),
+            pc_name.clone(),
+            Arc::clone(&keypair),
+        );
+        let active_channel = ActiveControlChannel::new(Arc::clone(&feature_registry));
+
         Arc::new(Self {
             desktop_id: identity.device_id,
             pc_name,
@@ -165,10 +237,25 @@ impl SessionManager {
                 bluetooth_listening: false,
                 speaker_policy_tx,
                 mic_policy_tx,
+                mouse_policy_tx,
             }),
-            speaker_host,
-            mic_host,
+            feature_registry,
+            handshake,
+            active_channel,
         })
+    }
+
+    /// Backward-compatible constructor accepting legacy Speaker and Mic stream hosts.
+    pub fn new_with_hosts(
+        identity: DeviceIdentity,
+        keypair: IdentityKeypair,
+        speaker_host: Arc<dyn SpeakerStreamHost>,
+        mic_host: Arc<dyn MicStreamHost>,
+    ) -> SharedSession {
+        let registry = Arc::new(FeatureRegistry::new());
+        registry.register(Arc::new(SpeakerHostAdapter(speaker_host)));
+        registry.register(Arc::new(MicHostAdapter(mic_host)));
+        Self::new(identity, keypair, registry)
     }
 
     pub fn snapshot(&self) -> SessionSnapshot {
@@ -204,7 +291,9 @@ impl SessionManager {
         guard.prefs.set_speaker_service_allowed(allowed);
         let _ = guard.speaker_policy_tx.send(allowed);
         if !allowed {
-            self.speaker_host.stop_stream();
+            if let Some(speaker) = self.feature_registry.get(ChannelId::Speaker) {
+                speaker.stop_stream();
+            }
         }
     }
 
@@ -213,7 +302,20 @@ impl SessionManager {
         guard.prefs.set_mic_service_allowed(allowed);
         let _ = guard.mic_policy_tx.send(allowed);
         if !allowed {
-            self.mic_host.stop_stream();
+            if let Some(mic) = self.feature_registry.get(ChannelId::Mic) {
+                mic.stop_stream();
+            }
+        }
+    }
+
+    pub fn set_mouse_service_allowed(&self, allowed: bool) {
+        let mut guard = self.inner.write().expect("session lock poisoned");
+        guard.prefs.set_mouse_service_allowed(allowed);
+        let _ = guard.mouse_policy_tx.send(allowed);
+        if !allowed {
+            if let Some(mouse) = self.feature_registry.get(ChannelId::Mouse) {
+                mouse.stop_stream();
+            }
         }
     }
 
@@ -276,8 +378,7 @@ impl SessionManager {
         }
     }
 
-    /// Spawns the dedicated background Tokio runtime hosting the authenticated UDP
-    /// discovery responder and the WireWave-exclusive encrypted TCP listener.
+    /// Spawns the dedicated background Tokio runtime hosting discovery and listeners.
     pub fn start_background_services(self: &SharedSession) {
         let session = Arc::clone(self);
         std::thread::Builder::new()
@@ -378,8 +479,7 @@ impl SessionManager {
             };
             let mgr = Arc::clone(&self);
             tokio::spawn(async move {
-                mgr.handle_incoming_stream(stream, TransportKind::WiFi)
-                    .await;
+                mgr.handle_incoming_stream(stream, TransportKind::WiFi).await;
             });
         }
     }
@@ -405,12 +505,10 @@ impl SessionManager {
             return;
         };
 
-        // Strict app-to-app isolation: reject any client with wrong protocol domain.
         if protocol_domain != APP_CONFIG.connection.protocol_domain {
             return;
         }
 
-        // Verify that client-reported transport matches the actual incoming listener socket.
         if transport != actual_transport {
             let _ = send_control(
                 &mut stream,
@@ -422,7 +520,6 @@ impl SessionManager {
             return;
         }
 
-        // Arbitrate lock, blocklist, trust, and transport priority.
         let decision = self.arbitrate_incoming(&device_id, actual_transport, require_pairing);
         let peer_x25519 = match decode_x25519(&ephemeral_x25519_hex) {
             Some(pk) => pk,
@@ -434,30 +531,60 @@ impl SessionManager {
                 let _ = send_control(&mut stream, &ControlMessage::Rejected { code }).await;
             }
             IncomingDecision::TrustedChallenge { stored_pubkey } => {
-                Arc::clone(&self)
-                    .run_trusted_handshake(
+                let handshake_res = self
+                    .handshake
+                    .execute_trusted_challenge(
                         stream,
-                        device_id.clone(),
-                        device_name,
-                        stored_pubkey,
+                        &device_id,
+                        &stored_pubkey,
                         peer_x25519,
-                        ephemeral_x25519_hex,
+                        &ephemeral_x25519_hex,
                         transport,
                     )
                     .await;
+                if let Ok((stream, session_key)) = handshake_res {
+                    Arc::clone(&self)
+                        .enter_connected_loop(stream, device_id.clone(), device_name, transport, session_key)
+                        .await;
+                }
             }
             IncomingDecision::RequireOtp => {
-                Arc::clone(&self)
-                    .run_otp_pairing(
+                let session_for_set = Arc::clone(&self);
+                let session_for_trust = Arc::clone(&self);
+                let session_for_clear = Arc::clone(&self);
+
+                let handshake_res = self
+                    .handshake
+                    .execute_otp_pairing(
                         stream,
                         device_id.clone(),
-                        device_name,
+                        device_name.clone(),
                         public_key_hex,
                         peer_x25519,
-                        ephemeral_x25519_hex,
+                        &ephemeral_x25519_hex,
                         transport,
+                        move |pending, cancel_tx| {
+                            let mut guard = session_for_set.inner.write().expect("session lock poisoned");
+                            guard.handshake_reservation = None;
+                            guard.pairing_cancel_tx = Some(cancel_tx);
+                            guard.state = SessionState::Pairing(pending);
+                        },
+                        move |dev_id, dev_name, pubkey| {
+                            let mut guard = session_for_trust.inner.write().expect("session lock poisoned");
+                            guard.trust.upsert_trusted(dev_id, dev_name, pubkey);
+                            guard.pairing_cancel_tx = None;
+                        },
+                        move |dev_id| {
+                            session_for_clear.clear_pairing_if_matching(dev_id);
+                        },
                     )
                     .await;
+
+                if let Ok((stream, session_key)) = handshake_res {
+                    Arc::clone(&self)
+                        .enter_connected_loop(stream, device_id.clone(), device_name, transport, session_key)
+                        .await;
+                }
             }
         }
         self.clear_handshake_reservation(&device_id, transport);
@@ -500,7 +627,6 @@ impl SessionManager {
             }
             SessionState::Pairing(_) => IncomingDecision::Reject(RejectCode::Busy),
             SessionState::Connected(active) => {
-                // Preempt only if the incoming link strictly outranks the current link AND the peer is trusted.
                 let priority = guard.prefs.get().priority;
                 let can_preempt = priority.outranks(incoming_transport, active.transport)
                     && trusted_pubkey.is_some()
@@ -523,237 +649,16 @@ impl SessionManager {
         }
     }
 
-    async fn run_trusted_handshake(
-        self: Arc<Self>,
-        mut stream: TcpStream,
-        device_id: String,
-        device_name: String,
-        stored_pubkey: String,
-        peer_x25519: PublicKey,
-        client_x25519_hex: String,
-        transport: TransportKind,
-    ) {
-        let server_ephemeral = EphemeralSecret::random_from_rng(OsRng);
-        let server_ephemeral_pub = PublicKey::from(&server_ephemeral);
-        let server_x25519_hex = hex::encode(server_ephemeral_pub.as_bytes());
-        let shared = server_ephemeral.diffie_hellman(&peer_x25519);
-
-        let mut nonce = [0u8; 32];
-        OsRng.fill_bytes(&mut nonce);
-        let nonce_hex = hex::encode(nonce);
-
-        let challenge = ControlMessage::Challenge {
-            desktop_id: self.desktop_id.clone(),
-            desktop_name: self.pc_name.clone(),
-            desktop_public_key_hex: self.keypair.public_key_hex(),
-            ephemeral_x25519_hex: server_x25519_hex.clone(),
-            nonce_hex: nonce_hex.clone(),
-        };
-        if send_control(&mut stream, &challenge).await.is_err() {
-            return;
-        }
-
-        let Ok(raw_reply) = read_frame(&mut stream).await else {
-            return;
-        };
-        let Ok(ControlMessage::ChallengeReply { signature_hex }) =
-            serde_json::from_slice::<ControlMessage>(&raw_reply)
-        else {
-            return;
-        };
-
-        let exchange_hash = compute_exchange_hash(
-            &self.desktop_id,
-            &device_id,
-            &self.keypair.public_key_hex(),
-            &stored_pubkey,
-            &server_x25519_hex,
-            &client_x25519_hex,
-            &nonce_hex,
-        );
-        let sig_valid = hex::decode(&signature_hex)
-            .ok()
-            .and_then(|sig| verify_peer_signature(&stored_pubkey, &exchange_hash, &sig).ok())
-            .is_some();
-
-        if !sig_valid {
-            let _ = send_control(
-                &mut stream,
-                &ControlMessage::Rejected {
-                    code: RejectCode::AuthFailed,
-                },
-            )
-            .await;
-            return;
-        }
-
-        let desktop_sig = hex::encode(self.keypair.sign(&exchange_hash));
-        if send_control(
-            &mut stream,
-            &ControlMessage::SessionReady {
-                desktop_signature_hex: desktop_sig,
-                transport,
-            },
-        )
-        .await
-        .is_err()
-        {
-            return;
-        }
-
-        let session_key = derive_session_key(shared.as_bytes(), &exchange_hash);
-        self.enter_connected_loop(stream, device_id, device_name, transport, session_key)
-            .await;
-    }
-
-    async fn run_otp_pairing(
-        self: Arc<Self>,
-        mut stream: TcpStream,
-        device_id: String,
-        device_name: String,
-        peer_pubkey_hex: String,
-        peer_x25519: PublicKey,
-        client_x25519_hex: String,
-        transport: TransportKind,
-    ) {
-        let server_ephemeral = EphemeralSecret::random_from_rng(OsRng);
-        let server_ephemeral_pub = PublicKey::from(&server_ephemeral);
-        let server_x25519_hex = hex::encode(server_ephemeral_pub.as_bytes());
-        let shared = server_ephemeral.diffie_hellman(&peer_x25519);
-
-        let otp_code = generate_otp();
-        let ttl_secs = APP_CONFIG.connection.otp_ttl_secs;
-        let (cancel_tx, mut cancel_rx) = watch::channel(false);
-
-        {
-            let mut guard = self.inner.write().expect("session lock poisoned");
-            guard.handshake_reservation = None;
-            guard.pairing_cancel_tx = Some(cancel_tx);
-            guard.state = SessionState::Pairing(PendingPairing {
-                device_id: device_id.clone(),
-                device_name: device_name.clone(),
-                transport,
-                otp_code: otp_code.clone(),
-                expires_at: Instant::now() + Duration::from_secs(ttl_secs),
-                ttl_secs,
-            });
-        }
-
-        let prompt = ControlMessage::OtpRequired {
-            desktop_id: self.desktop_id.clone(),
-            desktop_name: self.pc_name.clone(),
-            desktop_public_key_hex: self.keypair.public_key_hex(),
-            ephemeral_x25519_hex: server_x25519_hex.clone(),
-            ttl_secs,
-        };
-        if send_control(&mut stream, &prompt).await.is_err() {
-            self.clear_pairing_if_matching(&device_id);
-            return;
-        }
-
-        let exchange_hash = compute_exchange_hash(
-            &self.desktop_id,
-            &device_id,
-            &self.keypair.public_key_hex(),
-            &peer_pubkey_hex,
-            &server_x25519_hex,
-            &client_x25519_hex,
-            "",
-        );
-        let deadline = time::Instant::now() + Duration::from_secs(ttl_secs);
-        let max_attempts = APP_CONFIG.connection.otp_max_attempts;
-        let mut verified = false;
-
-        for _ in 0..max_attempts {
-            let incoming = tokio::select! {
-                _ = time::sleep_until(deadline) => {
-                    let _ = send_control(&mut stream, &ControlMessage::Rejected { code: RejectCode::OtpExpired }).await;
-                    break;
-                }
-                _ = cancel_rx.changed() => {
-                    let _ = send_control(&mut stream, &ControlMessage::Rejected { code: RejectCode::Cancelled }).await;
-                    break;
-                }
-                frame = read_frame(&mut stream) => frame,
-            };
-
-            let Ok(raw) = incoming else {
-                break;
-            };
-            let Ok(ControlMessage::OtpProof {
-                proof_hex,
-                signature_hex,
-            }) = serde_json::from_slice::<ControlMessage>(&raw)
-            else {
-                break;
-            };
-
-            let proof_ok = hex::decode(&proof_hex)
-                .map(|p| verify_otp_proof(shared.as_bytes(), &otp_code, &exchange_hash, &p))
-                .unwrap_or(false);
-            let sig_ok = hex::decode(&signature_hex)
-                .ok()
-                .and_then(|s| verify_peer_signature(&peer_pubkey_hex, &exchange_hash, &s).ok())
-                .is_some();
-
-            if proof_ok && sig_ok {
-                verified = true;
-                break;
-            }
-
-            let _ = send_control(
-                &mut stream,
-                &ControlMessage::Rejected {
-                    code: RejectCode::InvalidOtp,
-                },
-            )
-            .await;
-        }
-
-        if !verified {
-            self.clear_pairing_if_matching(&device_id);
-            return;
-        }
-
-        {
-            let mut guard = self.inner.write().expect("session lock poisoned");
-            guard
-                .trust
-                .upsert_trusted(device_id.clone(), device_name.clone(), peer_pubkey_hex);
-            guard.pairing_cancel_tx = None;
-        }
-
-        let desktop_sig = hex::encode(self.keypair.sign(&exchange_hash));
-        if send_control(
-            &mut stream,
-            &ControlMessage::SessionReady {
-                desktop_signature_hex: desktop_sig,
-                transport,
-            },
-        )
-        .await
-        .is_err()
-        {
-            self.clear_pairing_if_matching(&device_id);
-            return;
-        }
-
-        let session_key = derive_session_key(shared.as_bytes(), &exchange_hash);
-        self.enter_connected_loop(stream, device_id, device_name, transport, session_key)
-            .await;
-    }
-
     async fn enter_connected_loop(
         self: Arc<Self>,
-        mut stream: TcpStream,
+        stream: TcpStream,
         device_id: String,
         device_name: String,
         transport: TransportKind,
         session_key: [u8; 32],
     ) {
-        let mut cipher = SessionCipher::new(session_key, CipherRole::Desktop);
-        let (cancel_tx, mut cancel_rx) = watch::channel(false);
-        let mut speaker_policy_rx = {
+        let (cancel_tx, cancel_rx) = watch::channel(false);
+        let (speaker_policy_rx, mic_policy_rx, mouse_policy_rx) = {
             let mut guard = self.inner.write().expect("session lock poisoned");
             guard.handshake_reservation = None;
             guard.active_cancel_tx = Some(cancel_tx);
@@ -762,315 +667,23 @@ impl SessionManager {
                 device_name,
                 transport,
             });
-            guard.speaker_policy_tx.subscribe()
+            (
+                guard.speaker_policy_tx.subscribe(),
+                guard.mic_policy_tx.subscribe(),
+                guard.mouse_policy_tx.subscribe(),
+            )
         };
-        let mut mic_policy_rx = self
-            .inner
-            .read()
-            .expect("session lock poisoned")
-            .mic_policy_tx
-            .subscribe();
 
-        let initially_allowed = self
-            .inner
-            .read()
-            .expect("session lock poisoned")
-            .prefs
-            .get()
-            .speaker_service_allowed;
-        let initial_state = ControlMessage::SpeakerState {
-            allowed: initially_allowed,
-            active: false,
-            detail: (!initially_allowed).then(|| "Blocked by desktop settings".into()),
-            udp_port: None,
-            stream_id: None,
-            udp_key_hex: None,
-        };
-        if send_encrypted(&mut stream, &mut cipher, &initial_state)
-            .await
-            .is_err()
-        {
-            let mut guard = self.inner.write().expect("session lock poisoned");
-            guard.active_cancel_tx = None;
-            guard.state = SessionState::Idle;
-            return;
-        }
-
-        let mic_permission = self
-            .inner
-            .read()
-            .expect("session lock poisoned")
-            .prefs
-            .get()
-            .mic_service_allowed;
-        let mic_driver = self.mic_host.available_driver();
-        let mic_allowed = mic_permission && mic_driver.is_some();
-        let mic_detail = match (mic_permission, mic_driver) {
-            (false, _) => Some("Blocked by desktop settings".into()),
-            (true, None) => Some("Compatible virtual microphone driver required".into()),
-            (true, Some(driver)) => Some(driver),
-        };
-        let initial_mic_state = ControlMessage::MicState {
-            allowed: mic_allowed,
-            active: false,
-            detail: mic_detail,
-            udp_port: None,
-            stream_id: None,
-            udp_key_hex: None,
-        };
-        if send_encrypted(&mut stream, &mut cipher, &initial_mic_state)
-            .await
-            .is_err()
-        {
-            let mut guard = self.inner.write().expect("session lock poisoned");
-            guard.active_cancel_tx = None;
-            guard.state = SessionState::Idle;
-            return;
-        }
-
-        let hb_interval = Duration::from_secs(APP_CONFIG.connection.heartbeat_interval_secs);
-        let hb_timeout = Duration::from_secs(APP_CONFIG.connection.heartbeat_timeout_secs);
-        let mut ticker = time::interval(hb_interval);
-        let mut seq: u64 = 0;
-        let mut last_seen = Instant::now();
-        let mut speaker_hello_task: Option<tokio::task::JoinHandle<()>> = None;
-
-        loop {
-            tokio::select! {
-                _ = cancel_rx.changed() => {
-                    let msg = ControlMessage::Disconnect { reason: "server_disconnect".into() };
-                    let _ = send_encrypted(&mut stream, &mut cipher, &msg).await;
-                    break;
-                }
-                changed = speaker_policy_rx.changed() => {
-                    if changed.is_err() {
-                        break;
-                    }
-                    let allowed = *speaker_policy_rx.borrow();
-                    if !allowed {
-                        if let Some(task) = speaker_hello_task.take() {
-                            task.abort();
-                        }
-                        self.speaker_host.stop_stream();
-                    }
-                    let state = ControlMessage::SpeakerState {
-                        allowed,
-                        active: false,
-                        detail: (!allowed).then(|| "Blocked by desktop settings".into()),
-                        udp_port: None,
-                        stream_id: None,
-                        udp_key_hex: None,
-                    };
-                    if send_encrypted(&mut stream, &mut cipher, &state).await.is_err() {
-                        break;
-                    }
-                }
-                changed = mic_policy_rx.changed() => {
-                    if changed.is_err() {
-                        break;
-                    }
-                    let permission = *mic_policy_rx.borrow();
-                    self.mic_host.stop_stream();
-                    let driver = self.mic_host.available_driver();
-                    let allowed = permission && driver.is_some();
-                    let detail = match (permission, driver) {
-                        (false, _) => Some("Blocked by desktop settings".into()),
-                        (true, None) => Some("Compatible virtual microphone driver required".into()),
-                        (true, Some(name)) => Some(name),
-                    };
-                    let state = ControlMessage::MicState {
-                        allowed,
-                        active: false,
-                        detail,
-                        udp_port: None,
-                        stream_id: None,
-                        udp_key_hex: None,
-                    };
-                    if send_encrypted(&mut stream, &mut cipher, &state).await.is_err() {
-                        break;
-                    }
-                }
-                _ = ticker.tick() => {
-                    if last_seen.elapsed() > hb_timeout {
-                        break;
-                    }
-                    seq = seq.wrapping_add(1);
-                    let ping = ControlMessage::HeartbeatPing { seq };
-                    if send_encrypted(&mut stream, &mut cipher, &ping).await.is_err() {
-                        break;
-                    }
-                }
-                frame = read_frame(&mut stream) => {
-                    let Ok(encrypted) = frame else { break; };
-                    let Ok(plain) = cipher.decrypt(&encrypted) else { break; };
-                    let Ok(msg) = serde_json::from_slice::<ControlMessage>(&plain) else { break; };
-                    last_seen = Instant::now();
-                    match msg {
-                        ControlMessage::HeartbeatPing { seq } => {
-                            let _ = send_encrypted(&mut stream, &mut cipher, &ControlMessage::HeartbeatPong { seq }).await;
-                        }
-                        ControlMessage::HeartbeatPong { .. } => {}
-                        ControlMessage::SpeakerCommand { active: false } => {
-                            if let Some(task) = speaker_hello_task.take() {
-                                task.abort();
-                            }
-                            self.speaker_host.stop_stream();
-                            let state = ControlMessage::SpeakerState {
-                                allowed: self.inner.read().expect("session lock poisoned").prefs.get().speaker_service_allowed,
-                                active: false,
-                                detail: None,
-                                udp_port: None,
-                                stream_id: None,
-                                udp_key_hex: None,
-                            };
-                            let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
-                        }
-                        ControlMessage::SpeakerCommand { active: true } => {
-                            let allowed = self.inner.read().expect("session lock poisoned").prefs.get().speaker_service_allowed;
-                            if !allowed {
-                                let state = ControlMessage::SpeakerState {
-                                    allowed: false,
-                                    active: false,
-                                    detail: Some("Blocked by desktop settings".into()),
-                                    udp_port: None,
-                                    stream_id: None,
-                                    udp_key_hex: None,
-                                };
-                                let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
-                                continue;
-                            }
-
-                            let stream_id = OsRng.next_u32();
-                            let udp_key = derive_udp_key(&session_key, stream_id);
-                            match UdpDataChannel::bind(udp_key, stream_id).await {
-                                Ok((channel, endpoint)) => {
-                                    if let Some(task) = speaker_hello_task.take() {
-                                        task.abort();
-                                    }
-                                    let accept_channel = Arc::clone(&channel);
-                                    speaker_hello_task = Some(tokio::spawn(async move {
-                                        let _ = accept_channel.accept_peer_hello().await;
-                                    }));
-                                    self.speaker_host.start_stream(channel, tokio::runtime::Handle::current());
-                                    let state = ControlMessage::SpeakerState {
-                                        allowed: true,
-                                        active: true,
-                                        detail: self.speaker_host.status_detail(),
-                                        udp_port: Some(endpoint.local_port),
-                                        stream_id: Some(endpoint.stream_id),
-                                        udp_key_hex: Some(hex::encode(udp_key)),
-                                    };
-                                    let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
-                                }
-                                Err(err) => {
-                                    tracing::warn!(%err, "Unable to bind speaker UDP stream");
-                                    let state = ControlMessage::SpeakerState {
-                                        allowed: true,
-                                        active: false,
-                                        detail: Some("Unable to open audio stream".into()),
-                                        udp_port: None,
-                                        stream_id: None,
-                                        udp_key_hex: None,
-                                    };
-                                    let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
-                                }
-                            }
-                        }
-                        ControlMessage::MicCommand { active: false } => {
-                            self.mic_host.stop_stream();
-                            let permission = self.inner.read().expect("session lock poisoned").prefs.get().mic_service_allowed;
-                            let driver = self.mic_host.available_driver();
-                            let allowed = permission && driver.is_some();
-                            let state = ControlMessage::MicState {
-                                allowed,
-                                active: false,
-                                detail: match (permission, driver) {
-                                    (false, _) => Some("Blocked by desktop settings".into()),
-                                    (true, None) => Some("Compatible virtual microphone driver required".into()),
-                                    (true, Some(name)) => Some(name),
-                                },
-                                udp_port: None,
-                                stream_id: None,
-                                udp_key_hex: None,
-                            };
-                            let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
-                        }
-                        ControlMessage::MicCommand { active: true } => {
-                            let permission = self.inner.read().expect("session lock poisoned").prefs.get().mic_service_allowed;
-                            let driver = self.mic_host.available_driver();
-                            if !permission || driver.is_none() {
-                                let state = ControlMessage::MicState {
-                                    allowed: false,
-                                    active: false,
-                                    detail: if permission {
-                                        Some("Compatible virtual microphone driver required".into())
-                                    } else {
-                                        Some("Blocked by desktop settings".into())
-                                    },
-                                    udp_port: None,
-                                    stream_id: None,
-                                    udp_key_hex: None,
-                                };
-                                let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
-                                continue;
-                            }
-
-                            self.mic_host.stop_stream();
-                            let stream_id = OsRng.next_u32();
-                            let udp_key = derive_udp_key(&session_key, stream_id);
-                            match UdpDataChannel::bind(udp_key, stream_id).await {
-                                Ok((channel, endpoint)) => {
-                                    match self.mic_host.start_stream(channel, tokio::runtime::Handle::current()) {
-                                        Ok(driver_name) => {
-                                            let state = ControlMessage::MicState {
-                                                allowed: true,
-                                                active: true,
-                                                detail: Some(driver_name),
-                                                udp_port: Some(endpoint.local_port),
-                                                stream_id: Some(endpoint.stream_id),
-                                                udp_key_hex: Some(hex::encode(udp_key)),
-                                            };
-                                            let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
-                                        }
-                                        Err(error) => {
-                                            let state = ControlMessage::MicState {
-                                                allowed: true,
-                                                active: false,
-                                                detail: Some(error),
-                                                udp_port: None,
-                                                stream_id: None,
-                                                udp_key_hex: None,
-                                            };
-                                            let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
-                                        }
-                                    }
-                                }
-                                Err(error) => {
-                                    tracing::warn!(%error, "Unable to bind microphone UDP stream");
-                                    let state = ControlMessage::MicState {
-                                        allowed: true,
-                                        active: false,
-                                        detail: Some("Unable to open microphone stream".into()),
-                                        udp_port: None,
-                                        stream_id: None,
-                                        udp_key_hex: None,
-                                    };
-                                    let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
-                                }
-                            }
-                        }
-                        ControlMessage::Disconnect { .. } => break,
-                        _ => {}
-                    }
-                }
-            }
-        }
-
-        if let Some(task) = speaker_hello_task.take() {
-            task.abort();
-        }
-        self.speaker_host.stop_stream();
-        self.mic_host.stop_stream();
+        self.active_channel
+            .run_loop(
+                stream,
+                session_key,
+                cancel_rx,
+                speaker_policy_rx,
+                mic_policy_rx,
+                mouse_policy_rx,
+            )
+            .await;
 
         let mut guard = self.inner.write().expect("session lock poisoned");
         let still_same = matches!(
@@ -1113,24 +726,4 @@ enum IncomingDecision {
     Reject(RejectCode),
     TrustedChallenge { stored_pubkey: String },
     RequireOtp,
-}
-
-fn decode_x25519(hex_str: &str) -> Option<PublicKey> {
-    let bytes: [u8; 32] = hex::decode(hex_str).ok()?.try_into().ok()?;
-    Some(PublicKey::from(bytes))
-}
-
-async fn send_control(stream: &mut TcpStream, msg: &ControlMessage) -> Result<(), ()> {
-    let bytes = serde_json::to_vec(msg).map_err(|_| ())?;
-    write_frame(stream, &bytes).await.map_err(|_| ())
-}
-
-async fn send_encrypted(
-    stream: &mut TcpStream,
-    cipher: &mut SessionCipher,
-    msg: &ControlMessage,
-) -> Result<(), ()> {
-    let plain = serde_json::to_vec(msg).map_err(|_| ())?;
-    let encrypted = cipher.encrypt(&plain).map_err(|_| ())?;
-    write_frame(stream, &encrypted).await.map_err(|_| ())
 }

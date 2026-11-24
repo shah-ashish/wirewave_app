@@ -66,6 +66,6 @@ mod tests {
     fn app_id_and_update_app_id_are_distinct() {
         assert_ne!(APP_CONFIG.app_id, APP_CONFIG.update_app_id);
         assert!(!APP_CONFIG.app_name.is_empty());
-        assert_eq!(APP_CONFIG.version_name, "1.1.6");
+        assert_eq!(APP_CONFIG.version_name, "1.2.0");
     }
 }

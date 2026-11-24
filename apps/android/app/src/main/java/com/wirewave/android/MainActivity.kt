@@ -7,6 +7,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -27,10 +28,15 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.wirewave.android.service.WireWaveConnectionService
 import com.wirewave.core.session.ClientSessionState
+import com.wirewave.features.connection.camera.CameraScreen
 import com.wirewave.features.connection.connected.ConnectedHomeScreen
 import com.wirewave.features.connection.discovery.DiscoveryScreen
+import com.wirewave.features.connection.mouse.MouseScreen
+import com.wirewave.features.connection.overlay.ScreenOverlay
 import com.wirewave.features.connection.pairing.PairingCodeScreen
 import com.wirewave.features.settings.SettingsScreen
+import com.wirewave.features.speaker.SpeakerCircleTile
+import com.wirewave.features.mic.MicCircleTile
 
 class MainActivity : ComponentActivity() {
     private var bluetoothPermissionsGranted by mutableStateOf(false)
@@ -94,6 +100,7 @@ class MainActivity : ComponentActivity() {
         if (!container.trustStore.connectionPrefs.value.keepAliveInBackground) {
             container.speakerEngine.stop()
             container.micCaptureEngine.stop()
+            container.mouseEngine.stop()
             if (container.sessionController.state.value is ClientSessionState.Connected) {
                 container.sessionController.disconnectForBackground()
             }
@@ -119,13 +126,17 @@ private fun WireWaveRoot(
 ) {
     val context = LocalContext.current
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var connectedScreen by rememberSaveable { mutableStateOf("home") }
+    var activeOverlay by rememberSaveable { mutableStateOf(ScreenOverlay.NONE) }
     val sessionState by container.sessionController.state.collectAsState()
     val discoveryState by container.discoveryController.state.collectAsState()
     val connectionPrefs by container.trustStore.connectionPrefs.collectAsState()
+    val mousePrefs by container.trustStore.mousePrefs.collectAsState()
     val speakerState by container.speakerEngine.state.collectAsState()
     val speakerRemoteState by container.sessionController.speakerState.collectAsState()
     val micCaptureState by container.micCaptureEngine.state.collectAsState()
     val micRemoteState by container.sessionController.micState.collectAsState()
+    val mouseRemoteState by container.sessionController.mouseState.collectAsState()
     val micPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -185,8 +196,51 @@ private fun WireWaveRoot(
         }
     }
 
+    LaunchedEffect(
+        mouseRemoteState.active,
+        mouseRemoteState.hostAddress,
+        mouseRemoteState.udpPort,
+        mouseRemoteState.streamId,
+        mouseRemoteState.udpKey
+    ) {
+        val host = mouseRemoteState.hostAddress
+        val port = mouseRemoteState.udpPort
+        val streamId = mouseRemoteState.streamId
+        val key = mouseRemoteState.udpKey
+        if (mouseRemoteState.allowed && mouseRemoteState.active &&
+            host != null && port != null && streamId != null && key != null
+        ) {
+            container.mouseEngine.start(host, port, key, streamId)
+        } else {
+            container.mouseEngine.stop()
+        }
+    }
+
+    LaunchedEffect(connectedScreen) {
+        if (connectedScreen == "mouse") {
+            container.sessionController.requestMouseActive(true)
+        } else {
+            container.sessionController.requestMouseActive(false)
+        }
+    }
+
     LaunchedEffect(bluetoothPermissionsGranted) {
         container.discoveryController.scan(allowAutoConnect = true)
+    }
+
+    LaunchedEffect(sessionState) {
+        if (sessionState !is ClientSessionState.Connected) {
+            connectedScreen = "home"
+            activeOverlay = ScreenOverlay.NONE
+        }
+    }
+
+    BackHandler(enabled = activeOverlay != ScreenOverlay.NONE || connectedScreen != "home") {
+        if (activeOverlay != ScreenOverlay.NONE) {
+            activeOverlay = ScreenOverlay.NONE
+        } else {
+            connectedScreen = "home"
+        }
     }
 
     val brandMark: @Composable () -> Unit = {
@@ -204,6 +258,7 @@ private fun WireWaveRoot(
             aboutSnapshot = container.aboutSnapshotFor(connectedPc),
             updateController = container.updateController,
             connectionPrefs = connectionPrefs,
+            mousePrefs = mousePrefs,
             trustedDesktops = trustedList,
             onToggleAutoConnect = container.trustStore::setAutoConnect,
             onToggleKeepAlive = { enabled ->
@@ -221,6 +276,9 @@ private fun WireWaveRoot(
                     }
                 }
             },
+            onPointerSpeedChange = container.trustStore::setPointerSpeed,
+            onScrollSpeedChange = container.trustStore::setScrollSpeed,
+            onToggleNaturalScroll = container.trustStore::setNaturalScroll,
             onForgetDesktop = { id ->
                 container.trustStore.forgetDesktop(id)
                 trustedList = container.trustStore.listTrustedDesktops()
@@ -257,37 +315,119 @@ private fun WireWaveRoot(
             onBack = container.sessionController::cancelPairing,
             onOpenSettings = { showSettings = true }
         )
-        is ClientSessionState.Connected -> ConnectedHomeScreen(
-            pcName = state.pcName,
-            transport = state.transport,
-            onDisconnect = {
-                container.speakerEngine.stop()
-                container.micCaptureEngine.stop()
-                container.sessionController.disconnectExplicitly()
-            },
-            onOpenSettings = { showSettings = true },
-            brandMark = brandMark,
-            isSpeakerOn = speakerState.isOn,
-            isSpeakerBlocked = !speakerRemoteState.allowed,
-            onToggleSpeaker = {
-                container.sessionController.requestSpeakerActive(!speakerRemoteState.active)
-            },
-            isMicOn = micCaptureState.isOn,
-            isMicBlocked = !micRemoteState.allowed,
-            micBlockedDetail = micRemoteState.detail,
-            onToggleMic = {
-                if (micRemoteState.active) {
-                    container.sessionController.requestMicActive(false)
-                } else if (ContextCompat.checkSelfPermission(
-                        context,
-                        Manifest.permission.RECORD_AUDIO
-                    ) == PackageManager.PERMISSION_GRANTED
-                ) {
-                    container.sessionController.requestMicActive(true)
-                } else {
-                    micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                }
+        is ClientSessionState.Connected -> {
+            when (connectedScreen) {
+                "mouse" -> MouseScreen(
+                    speakerActive = speakerRemoteState.allowed && speakerRemoteState.active,
+                    micActive = micRemoteState.allowed && micRemoteState.active,
+                    onToggleSpeaker = {
+                        container.sessionController.requestSpeakerActive(!speakerRemoteState.active)
+                    },
+                    onToggleMic = {
+                        if (micRemoteState.active) {
+                            container.sessionController.requestMicActive(false)
+                        } else if (ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.RECORD_AUDIO
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            container.sessionController.requestMicActive(true)
+                        } else {
+                            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    },
+                    overlayMode = activeOverlay,
+                    onOverlayChange = { activeOverlay = it },
+                    onNavigateHome = {
+                        activeOverlay = ScreenOverlay.NONE
+                        connectedScreen = "home"
+                    },
+                    onNavigateCamera = {
+                        activeOverlay = ScreenOverlay.NONE
+                        connectedScreen = "camera"
+                    },
+                    onNavigateSettings = {
+                        showSettings = true
+                    },
+                    onSendKeyInput = container.sessionController::sendKeyInput,
+                    mouseEngine = container.mouseEngine,
+                    mousePrefs = mousePrefs
+                )
+                "camera" -> CameraScreen(
+                    speakerActive = speakerRemoteState.allowed && speakerRemoteState.active,
+                    micActive = micRemoteState.allowed && micRemoteState.active,
+                    onToggleSpeaker = {
+                        container.sessionController.requestSpeakerActive(!speakerRemoteState.active)
+                    },
+                    onToggleMic = {
+                        if (micRemoteState.active) {
+                            container.sessionController.requestMicActive(false)
+                        } else if (ContextCompat.checkSelfPermission(
+                                context,
+                                Manifest.permission.RECORD_AUDIO
+                            ) == PackageManager.PERMISSION_GRANTED
+                        ) {
+                            container.sessionController.requestMicActive(true)
+                        } else {
+                            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                        }
+                    },
+                    onBack = {
+                        activeOverlay = ScreenOverlay.NONE
+                        connectedScreen = "home"
+                    }
+                )
+                else -> ConnectedHomeScreen(
+                    pcName = state.pcName,
+                    transport = state.transport,
+                    onDisconnect = {
+                        container.speakerEngine.stop()
+                        container.micCaptureEngine.stop()
+                        container.sessionController.disconnectExplicitly()
+                    },
+                    onOpenSettings = { showSettings = true },
+                    brandMark = brandMark,
+                    onNavigateToMouse = {
+                        activeOverlay = ScreenOverlay.NONE
+                        connectedScreen = "mouse"
+                    },
+                    onNavigateToCamera = {
+                        activeOverlay = ScreenOverlay.NONE
+                        connectedScreen = "camera"
+                    },
+                    activeOverlay = activeOverlay,
+                    onOverlayChange = { activeOverlay = it },
+                    speakerTile = {
+                        SpeakerCircleTile(
+                            isOn = speakerState.isOn,
+                            isBlocked = !speakerRemoteState.allowed,
+                            onToggle = {
+                                container.sessionController.requestSpeakerActive(!speakerRemoteState.active)
+                            }
+                        )
+                    },
+                    micTile = {
+                        MicCircleTile(
+                            isOn = micCaptureState.isOn,
+                            isBlocked = !micRemoteState.allowed,
+                            blockedDetail = micRemoteState.detail,
+                            onToggle = {
+                                if (micRemoteState.active) {
+                                    container.sessionController.requestMicActive(false)
+                                } else if (ContextCompat.checkSelfPermission(
+                                        context,
+                                        Manifest.permission.RECORD_AUDIO
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    container.sessionController.requestMicActive(true)
+                                } else {
+                                    micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                }
+                            }
+                        )
+                    }
+                )
             }
-        )
+        }
     }
 }

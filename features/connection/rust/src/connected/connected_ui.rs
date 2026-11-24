@@ -1,18 +1,20 @@
-use crate::connected::connected_logic::{ConnectedViewState, ServiceTileSpec};
+use crate::{
+    connected::connected_logic::{ConnectedViewState, ServiceTileSpec},
+    service_slots::ActiveServiceSlots,
+};
 use gpui::{div, prelude::*, px, rgba, svg, Context, Div, FontWeight, Render};
 use wirewave_core_config::{APP_CONFIG, THEME};
 use wirewave_core_transport::TransportKind;
-use wirewave_feature_speaker::render_speaker_tile;
-use wirewave_feature_mic::render_mic_tile;
 
 pub trait CanDisconnect: 'static {
     fn on_disconnect(&mut self);
 }
 
 /// Renders Desktop Connected Home screen matching Desktop_Home_-_Connected.png,
-/// with Active Services shown as UI-only tiles carrying a `Coming soon` badge.
+/// with active services rendered via the injected `ActiveServiceSlots`.
 pub fn render_connected_view<V: Render + CanDisconnect>(
     state: &ConnectedViewState,
+    slots: &dyn ActiveServiceSlots,
     cx: &mut Context<V>,
 ) -> Div {
     let c = THEME.colors;
@@ -147,16 +149,16 @@ pub fn render_connected_view<V: Render + CanDisconnect>(
         .flex_row()
         .gap(px(12.0))
         .w_full()
-        .child(render_speaker_tile(&state.speaker))
-        .child(render_mic_tile(&state.mic))
-        .child(service_placeholder_tile(state.services[2]));
+        .child(slots.render_speaker_tile())
+        .child(slots.render_mic_tile())
+        .child(slots.render_mouse_tile());
 
     let row_bottom = div()
         .flex()
         .flex_row()
         .gap(px(12.0))
         .w_full()
-        .child(service_placeholder_tile(state.services[3]))
+        .child(service_placeholder_tile(state.services[2]))
         .child(service_placeholder_tile(state.services[4]));
 
     let services_grid = div()
@@ -200,40 +202,53 @@ fn service_placeholder_tile(spec: ServiceTileSpec) -> Div {
         .bg(rgba(c.bg_card))
         .border_1()
         .border_color(rgba(c.border_subtle))
-        .rounded(px(m.radius_card - 2.0))
-        .px(px(14.0))
-        .py(px(14.0))
+        .rounded(px(m.radius_card))
+        .p(px(18.0))
         .flex()
-        .flex_row()
-        .items_center()
-        .gap(px(12.0))
-        .child(
-            svg()
-                .path(spec.icon_path)
-                .size(px(18.0))
-                .text_color(rgba(c.text_secondary)),
-        )
+        .flex_col()
+        .justify_between()
+        .h(px(120.0))
         .child(
             div()
                 .flex()
-                .flex_col()
-                .gap(px(4.0))
+                .flex_row()
+                .items_start()
+                .justify_between()
                 .child(
                     div()
-                        .text_size(px(THEME.typography.font_body))
-                        .font_weight(FontWeight::SEMIBOLD)
-                        .text_color(rgba(c.text_primary))
-                        .child(spec.name),
+                        .size(px(36.0))
+                        .rounded(px(10.0))
+                        .bg(rgba(c.bg_card_hover))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .child(
+                            svg()
+                                .path(spec.icon_path)
+                                .size(px(18.0))
+                                .text_color(rgba(c.text_secondary)),
+                        ),
                 )
                 .child(
                     div()
-                        .px(px(7.0))
-                        .py(px(2.0))
+                        .px(px(8.0))
+                        .py(px(3.0))
                         .rounded(px(m.radius_pill))
                         .bg(rgba(c.bg_card_hover))
-                        .text_size(px(10.0))
-                        .text_color(rgba(c.text_secondary))
-                        .child(spec.status_badge),
+                        .child(
+                            div()
+                                .text_size(px(THEME.typography.font_badge))
+                                .font_weight(FontWeight::NORMAL)
+                                .text_color(rgba(c.text_secondary))
+                                .child(spec.status_badge),
+                        ),
                 ),
+        )
+        .child(
+            div()
+                .text_size(px(15.0))
+                .font_weight(FontWeight::MEDIUM)
+                .text_color(rgba(c.text_primary))
+                .child(spec.name),
         )
 }

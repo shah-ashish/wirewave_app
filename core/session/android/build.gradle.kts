@@ -21,6 +21,7 @@ dependencies {
     implementation(project(":core:crypto"))
     implementation(project(":core:transport"))
     implementation(project(":core:discovery"))
+    implementation(project(":core:stream"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     testImplementation("junit:junit:4.13.2")
 }

@@ -27,3 +27,57 @@ impl wirewave_core_session::SpeakerStreamHost for SpeakerService {
         detect_active_playback_endpoint().map(|endpoint| endpoint.name)
     }
 }
+
+impl wirewave_core_session::FeatureHost for SpeakerService {
+    fn channel_id(&self) -> wirewave_core_stream::ChannelId {
+        wirewave_core_stream::ChannelId::Speaker
+    }
+
+    fn display_name(&self) -> &'static str {
+        "Speaker"
+    }
+
+    fn is_allowed(&self, prefs: &wirewave_core_session::ConnectionPreferences) -> bool {
+        prefs.speaker_service_allowed
+    }
+
+    fn status_detail(&self) -> Option<String> {
+        detect_active_playback_endpoint().map(|endpoint| endpoint.name)
+    }
+
+    fn requires_peer_hello(&self) -> bool {
+        true
+    }
+
+    fn start_stream(
+        &self,
+        channel: std::sync::Arc<wirewave_core_stream::UdpDataChannel>,
+        runtime: tokio::runtime::Handle,
+    ) -> Result<Option<String>, String> {
+        self.start(channel, runtime);
+        Ok(self.status_detail())
+    }
+
+    fn stop_stream(&self) {
+        self.stop();
+    }
+
+    fn make_state_message(
+        &self,
+        allowed: bool,
+        active: bool,
+        detail: Option<String>,
+        udp_port: Option<u16>,
+        stream_id: Option<u32>,
+        udp_key_hex: Option<String>,
+    ) -> wirewave_core_session::ControlMessage {
+        wirewave_core_session::ControlMessage::SpeakerState {
+            allowed,
+            active,
+            detail,
+            udp_port,
+            stream_id,
+            udp_key_hex,
+        }
+    }
+}

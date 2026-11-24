@@ -33,12 +33,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.wirewave.core.config.WireWaveTheme
 import com.wirewave.core.session.ConnectionPrefs
+import com.wirewave.core.session.MousePrefs
 import com.wirewave.core.session.TrustedDesktop
 import com.wirewave.features.settings.about.AboutSection
 import com.wirewave.features.settings.about.AboutSnapshot
 import com.wirewave.features.settings.components.SectionLabel
 import com.wirewave.features.settings.components.SurfaceCard
 import com.wirewave.features.settings.connection.ConnectionSection
+import com.wirewave.features.settings.mouse.MouseSettingsSection
 import com.wirewave.features.settings.update.UpdateController
 import com.wirewave.features.settings.update.UpdateSection
 
@@ -47,9 +49,13 @@ fun SettingsScreen(
     aboutSnapshot: AboutSnapshot,
     updateController: UpdateController,
     connectionPrefs: ConnectionPrefs,
+    mousePrefs: MousePrefs = MousePrefs(),
     trustedDesktops: List<TrustedDesktop> = emptyList(),
     onToggleAutoConnect: (Boolean) -> Unit,
     onToggleKeepAlive: (Boolean) -> Unit,
+    onPointerSpeedChange: (Float) -> Unit = {},
+    onScrollSpeedChange: (Float) -> Unit = {},
+    onToggleNaturalScroll: (Boolean) -> Unit = {},
     onForgetDesktop: (String) -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -95,6 +101,13 @@ fun SettingsScreen(
             prefs = connectionPrefs,
             onToggleAutoConnect = onToggleAutoConnect,
             onToggleKeepAlive = onToggleKeepAlive
+        )
+
+        MouseSettingsSection(
+            prefs = mousePrefs,
+            onPointerSpeedChange = onPointerSpeedChange,
+            onScrollSpeedChange = onScrollSpeedChange,
+            onToggleNaturalScroll = onToggleNaturalScroll
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(WireWaveTheme.Metrics.spacingSm)) {

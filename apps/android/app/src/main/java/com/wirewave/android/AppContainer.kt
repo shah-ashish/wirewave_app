@@ -21,6 +21,7 @@ import com.wirewave.features.settings.about.AboutSnapshot
 import com.wirewave.features.settings.update.UpdateController
 import com.wirewave.features.speaker.SpeakerEngine
 import com.wirewave.features.mic.MicCaptureEngine
+import com.wirewave.features.connection.mouse.MouseEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -82,6 +83,7 @@ class AppContainer(context: Context) {
 
     val speakerEngine: SpeakerEngine = SpeakerEngine(appScope)
     val micCaptureEngine: MicCaptureEngine = MicCaptureEngine(appScope)
+    val mouseEngine: MouseEngine = MouseEngine(appScope)
 
     fun updateMicrophoneForeground(active: Boolean, pcName: String) {
         if (active || trustStore.connectionPrefs.value.keepAliveInBackground) {

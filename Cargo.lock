@@ -7230,6 +7230,7 @@ dependencies = [
  "wirewave-core-session",
  "wirewave-feature-connection",
  "wirewave-feature-mic",
+ "wirewave-feature-mouse",
  "wirewave-feature-settings",
  "wirewave-feature-speaker",
 ]
@@ -7243,8 +7244,6 @@ dependencies = [
  "wirewave-core-session",
  "wirewave-core-stream",
  "wirewave-core-transport",
- "wirewave-feature-mic",
- "wirewave-feature-speaker",
 ]
 
 [[package]]
@@ -7259,6 +7258,21 @@ dependencies = [
  "wirewave-core-config",
  "wirewave-core-session",
  "wirewave-core-stream",
+]
+
+[[package]]
+name = "wirewave-feature-mouse"
+version = "1.1.6"
+dependencies = [
+ "gpui",
+ "thiserror 2.0.21",
+ "tokio",
+ "tracing",
+ "windows 0.58.0",
+ "wirewave-core-config",
+ "wirewave-core-session",
+ "wirewave-core-stream",
+ "wirewave-core-transport",
 ]
 
 [[package]]

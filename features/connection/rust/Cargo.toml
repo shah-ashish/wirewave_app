@@ -10,5 +10,3 @@ wirewave-core-config = { workspace = true }
 wirewave-core-session = { workspace = true }
 wirewave-core-stream = { workspace = true }
 wirewave-core-transport = { workspace = true }
-wirewave-feature-speaker = { workspace = true }
-wirewave-feature-mic = { workspace = true }

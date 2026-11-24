@@ -26,10 +26,37 @@ impl CompatibilityReport {
     }
 }
 
+/// Evaluates whether the host OS meets the minimum requirements.
+pub struct CompatibilityChecker {
+    min_windows_build: u32,
+}
+
+impl CompatibilityChecker {
+    pub fn new() -> Self {
+        Self {
+            min_windows_build: APP_CONFIG.min_windows_build,
+        }
+    }
+
+    pub fn check(&self) -> CompatibilityReport {
+        let (major, build) = query_windows_version();
+        self.evaluate(major, build)
+    }
+
+    pub fn evaluate(&self, major: u32, build: u32) -> CompatibilityReport {
+        evaluate_windows_build(major, build, self.min_windows_build)
+    }
+}
+
+impl Default for CompatibilityChecker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Evaluates whether the host OS meets the minimum Windows 11 requirement.
 pub fn check_compatibility() -> CompatibilityReport {
-    let (major, build) = query_windows_version();
-    evaluate_windows_build(major, build, APP_CONFIG.min_windows_build)
+    CompatibilityChecker::new().check()
 }
 
 /// Pure evaluator separated for deterministic unit testing.
@@ -97,15 +124,21 @@ mod tests {
 
     #[test]
     fn windows_11_build_is_supported() {
-        let report = evaluate_windows_build(10, 22631, 22000);
+        let checker = CompatibilityChecker::new();
+        let report = checker.evaluate(10, 22631);
+
         assert!(report.is_supported());
         assert_eq!(report.badge_label(), "Supported");
+        assert_eq!(report.detected_os, "Windows 10 (Build 22631)");
     }
 
     #[test]
     fn windows_10_build_is_unsupported() {
-        let report = evaluate_windows_build(10, 19045, 22000);
+        let checker = CompatibilityChecker::new();
+        let report = checker.evaluate(10, 19045);
+
         assert!(!report.is_supported());
         assert_eq!(report.badge_label(), "Unsupported");
+        assert!(matches!(report.status, CompatibilityStatus::Unsupported { .. }));
     }
 }

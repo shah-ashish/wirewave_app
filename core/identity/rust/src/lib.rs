@@ -26,15 +26,42 @@ pub struct DeviceIdentity {
     pub device_id: String,
 }
 
+/// Encapsulates persistent device identity management and hashing.
+pub struct DeviceIdentityStore {
+    path: PathBuf,
+}
+
+impl DeviceIdentityStore {
+    /// Constructs the default persistent store located in `%LOCALAPPDATA%\WireWave\identity.json`.
+    pub fn default_store() -> Result<Self, IdentityError> {
+        let path = default_identity_path()?;
+        Ok(Self::new(path))
+    }
+
+    /// Constructs an identity store at a specific filesystem path.
+    pub fn new(path: PathBuf) -> Self {
+        Self { path }
+    }
+
+    /// Fetches the existing identity or securely generates and persists a new one.
+    pub fn fetch_or_create(&self) -> Result<DeviceIdentity, IdentityError> {
+        fetch_or_create_at(&self.path)
+    }
+
+    /// Loads the stored identity if valid.
+    pub fn load(&self) -> Option<DeviceIdentity> {
+        load_identity(&self.path)
+    }
+
+    /// Saves an identity to disk atomically.
+    pub fn save(&self, identity: &DeviceIdentity) -> Result<(), IdentityError> {
+        save_identity(&self.path, identity)
+    }
+}
+
 /// Fetches the persisted device ID, or generates and saves one if absent.
-///
-/// The file is stored in `%LOCALAPPDATA%\WireWave\identity.json`, which the
-/// NSIS installer preserves across uninstall/reinstall. On Windows, initial
-/// generation hashes the machine GUID so even a manual data wipe yields the
-/// same stable ID on the same machine.
 pub fn fetch_or_create_device_id() -> Result<DeviceIdentity, IdentityError> {
-    let path = default_identity_path()?;
-    fetch_or_create_at(&path)
+    DeviceIdentityStore::default_store()?.fetch_or_create()
 }
 
 pub fn fetch_or_create_at(path: &Path) -> Result<DeviceIdentity, IdentityError> {
@@ -100,8 +127,9 @@ fn read_platform_machine_seed() -> Option<String> {
         RegGetValueW, HKEY_LOCAL_MACHINE, RRF_RT_REG_SZ,
     };
 
-    let mut buffer = [0u16; 128];
-    let mut byte_len = (buffer.len() * std::mem::size_of::<u16>()) as u32;
+    let mut buf = [0u16; 64];
+    let mut size = (buf.len() * std::mem::size_of::<u16>()) as u32;
+
     let status = unsafe {
         RegGetValueW(
             HKEY_LOCAL_MACHINE,
@@ -109,16 +137,17 @@ fn read_platform_machine_seed() -> Option<String> {
             w!("MachineGuid"),
             RRF_RT_REG_SZ,
             None,
-            Some(buffer.as_mut_ptr().cast()),
-            Some(&mut byte_len),
+            Some(buf.as_mut_ptr().cast()),
+            Some(&mut size),
         )
     };
-    if status.is_err() {
-        return None;
+
+    if status.is_ok() {
+        let len = (size as usize / std::mem::size_of::<u16>()).saturating_sub(1);
+        String::from_utf16(&buf[..len]).ok()
+    } else {
+        None
     }
-    let len = (byte_len as usize / 2).saturating_sub(1);
-    let value = String::from_utf16_lossy(&buffer[..len]);
-    (!value.trim().is_empty()).then_some(value)
 }
 
 #[cfg(not(windows))]
@@ -131,44 +160,50 @@ mod tests {
     use super::*;
 
     #[test]
+    fn salted_hash_is_deterministic_and_non_raw() {
+        let seed = "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}";
+        let id1 = derive_salted_id(seed);
+        let id2 = derive_salted_id(seed);
+
+        assert_eq!(id1, id2);
+        assert!(id1.starts_with("wwd_"));
+        assert_eq!(id1.len(), 28);
+        assert!(!id1.contains(seed));
+    }
+
+    #[test]
     fn fetch_or_create_is_idempotent() {
-        let dir = std::env::temp_dir().join(format!("ww_id_test_{}", Uuid::new_v4()));
-        let file = dir.join(IDENTITY_FILE_NAME);
+        let dir = std::env::temp_dir().join(format!("ww_test_id_{}", Uuid::new_v4()));
+        let path = dir.join("identity.json");
+        let store = DeviceIdentityStore::new(path.clone());
 
-        let first = fetch_or_create_at(&file).expect("first create");
-        let second = fetch_or_create_at(&file).expect("second fetch");
+        let id1 = store.fetch_or_create().unwrap();
+        let id2 = store.fetch_or_create().unwrap();
 
-        assert_eq!(first, second);
-        assert!(first.device_id.starts_with("wwd_"));
+        assert_eq!(id1, id2);
+        assert_eq!(id1.schema_version, 1);
+        assert!(id1.device_id.starts_with("wwd_"));
+
         let _ = fs::remove_dir_all(dir);
     }
 
     #[test]
-    fn salted_hash_is_deterministic_and_non_raw() {
-        let id_a = derive_salted_id("test-machine-guid");
-        let id_b = derive_salted_id("test-machine-guid");
-        assert_eq!(id_a, id_b);
-        assert!(!id_a.contains("test-machine-guid"));
-    }
-
-    #[test]
     fn corrupted_identity_is_backed_up_and_replaced() {
-        let dir = std::env::temp_dir().join(format!("ww_id_repair_test_{}", Uuid::new_v4()));
-        fs::create_dir_all(&dir).expect("create test directory");
-        let file = dir.join(IDENTITY_FILE_NAME);
-        fs::write(&file, "not valid json").expect("write corrupt identity");
+        let dir = std::env::temp_dir().join(format!("ww_test_corrupt_{}", Uuid::new_v4()));
+        let path = dir.join("identity.json");
+        let store = DeviceIdentityStore::new(path.clone());
 
-        let repaired = fetch_or_create_at(&file).expect("repair identity");
-        let loaded = load_identity(&file).expect("load repaired identity");
+        fs::create_dir_all(&dir).unwrap();
+        fs::write(&path, b"not valid json").unwrap();
 
-        assert_eq!(repaired, loaded);
-        assert!(dir.read_dir().expect("read test directory").any(|entry| {
-            entry
-                .expect("directory entry")
-                .file_name()
-                .to_string_lossy()
-                .starts_with("identity.json.corrupt-")
-        }));
+        let id = store.fetch_or_create().unwrap();
+        assert!(id.device_id.starts_with("wwd_"));
+
+        let entries: Vec<_> = fs::read_dir(&dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().to_string())
+            .collect();
+        assert!(entries.iter().any(|name| name.contains("json.corrupt")));
 
         let _ = fs::remove_dir_all(dir);
     }

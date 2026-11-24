@@ -14,11 +14,12 @@ members = [
     "core/stream/rust",
     "features/speaker/rust",
     "features/mic/rust",
+    "features/mouse/rust",
     "apps/desktop",
 ]
 
 [workspace.package]
-version = "1.1.6"
+version = "1.2.0"
 edition = "2024"
 authors = ["WireWave Team"]
 license = "MIT"
@@ -53,6 +54,7 @@ windows = { version = "0.58", features = [
     "Win32_System_Registry",
     "Win32_System_SystemInformation",
     "Win32_System_Threading",
+    "Win32_UI_Input_KeyboardAndMouse",
 ] }
 
 wirewave-core-config = { path = "core/config/rust" }
@@ -68,6 +70,7 @@ wirewave-feature-connection = { path = "features/connection/rust" }
 wirewave-core-stream = { path = "core/stream/rust" }
 wirewave-feature-speaker = { path = "features/speaker/rust" }
 wirewave-feature-mic = { path = "features/mic/rust" }
+wirewave-feature-mouse = { path = "features/mouse/rust" }
 
 [profile.release]
 opt-level = 3
