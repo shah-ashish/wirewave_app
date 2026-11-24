@@ -5,14 +5,16 @@ use crate::shell::{
 use gpui::{div, prelude::*, px, rgba, Context, Entity, Render, Window};
 use wirewave_core_config::THEME;
 use wirewave_core_session::{SessionState, SharedSession};
+use wirewave_feature_camera::CameraPreviewScreen;
 use wirewave_feature_connection::HomeScreen;
 use wirewave_feature_settings::SettingsScreen;
 
-/// Root desktop shell composing the titlebar, sidebar navigation, Home, and Settings.
+/// Root desktop shell composing the titlebar, sidebar navigation, Home, Camera, and Settings.
 pub struct AppShell {
     active_tab: NavTab,
     session: SharedSession,
     home: Entity<HomeScreen>,
+    camera: Entity<CameraPreviewScreen>,
     settings: Entity<SettingsScreen>,
 }
 
@@ -20,12 +22,14 @@ impl AppShell {
     pub fn new(
         session: SharedSession,
         home: Entity<HomeScreen>,
+        camera: Entity<CameraPreviewScreen>,
         settings: Entity<SettingsScreen>,
     ) -> Self {
         Self {
             active_tab: NavTab::Home,
             session,
             home,
+            camera,
             settings,
         }
     }
@@ -44,6 +48,7 @@ impl Render for AppShell {
 
         let active_view = match self.active_tab {
             NavTab::Home => self.home.clone().into_any_element(),
+            NavTab::Camera => self.camera.clone().into_any_element(),
             NavTab::Settings => self.settings.clone().into_any_element(),
         };
 

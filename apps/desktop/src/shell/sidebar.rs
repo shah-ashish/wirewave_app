@@ -4,6 +4,7 @@ use wirewave_core_config::{APP_CONFIG, THEME};
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavTab {
     Home,
+    Camera,
     Settings,
 }
 
@@ -11,7 +12,7 @@ pub trait HasNavigation: 'static {
     fn select_tab(&mut self, tab: NavTab);
 }
 
-/// Left navigation rail with Home + Settings buttons and bottom connection status dot.
+/// Left navigation rail with Home + Camera + Settings buttons and bottom connection status dot.
 pub fn render_sidebar<V: Render + HasNavigation>(
     active_tab: NavTab,
     is_connected: bool,
@@ -31,6 +32,13 @@ pub fn render_sidebar<V: Render + HasNavigation>(
             a.icon_home_svg,
             NavTab::Home,
             active_tab == NavTab::Home,
+            cx,
+        ))
+        .child(nav_button(
+            "nav-camera",
+            a.icon_camera_svg,
+            NavTab::Camera,
+            active_tab == NavTab::Camera,
             cx,
         ))
         .child(nav_button(

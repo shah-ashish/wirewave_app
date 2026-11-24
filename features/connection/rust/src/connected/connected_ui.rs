@@ -150,16 +150,15 @@ pub fn render_connected_view<V: Render + CanDisconnect>(
         .gap(px(12.0))
         .w_full()
         .child(slots.render_speaker_tile())
-        .child(slots.render_mic_tile())
-        .child(slots.render_mouse_tile());
+        .child(slots.render_mic_tile());
 
     let row_bottom = div()
         .flex()
         .flex_row()
         .gap(px(12.0))
         .w_full()
-        .child(service_placeholder_tile(state.services[2]))
-        .child(service_placeholder_tile(state.services[4]));
+        .child(slots.render_mouse_tile())
+        .child(slots.render_camera_tile());
 
     let services_grid = div()
         .flex()
@@ -192,6 +191,7 @@ pub fn render_connected_view<V: Render + CanDisconnect>(
         )
 }
 
+#[allow(dead_code)]
 fn service_placeholder_tile(spec: ServiceTileSpec) -> Div {
     let c = THEME.colors;
     let m = THEME.metrics;

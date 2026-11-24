@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,6 +22,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
@@ -31,14 +36,26 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wirewave.core.config.AppConfig
@@ -66,14 +83,70 @@ fun ConnectedHomeScreen(
     micTile: @Composable () -> Unit = {},
     onNavigateToMouse: () -> Unit = {},
     onNavigateToCamera: () -> Unit = {},
+    onSendKeyInput: (text: String?, keyCode: String?) -> Unit = { _, _ -> },
     activeOverlay: ScreenOverlay = ScreenOverlay.NONE,
     onOverlayChange: (ScreenOverlay) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val remainingCircles = listOf(
-        ServiceCircleSpec("Keyboard", Icons.Rounded.Keyboard)
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusRequester = remember { FocusRequester() }
+    val density = LocalDensity.current
+    val imeBottom = WindowInsets.ime.getBottom(density)
+    val isKeyboardVisible = imeBottom > 0
+
+    val sentinel = "  "
+    var textValue by remember {
+        mutableStateOf(TextFieldValue(sentinel, TextRange(sentinel.length)))
+    }
+
+    // Hidden input field that triggers and captures Android native keyboard input (Gboard, Samsung, etc.)
+    BasicTextField(
+        value = textValue,
+        onValueChange = { newText ->
+            val currentStr = newText.text
+            if (currentStr.length > sentinel.length) {
+                val added = currentStr.substring(sentinel.length)
+                if (added.contains("\n")) {
+                    val parts = added.split("\n")
+                    parts.forEachIndexed { index, part ->
+                        if (part.isNotEmpty()) {
+                            onSendKeyInput(part, null)
+                        }
+                        if (index < parts.size - 1) {
+                            onSendKeyInput(null, "Enter")
+                        }
+                    }
+                } else {
+                    onSendKeyInput(added, null)
+                }
+                textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
+            } else if (currentStr.length < sentinel.length) {
+                val count = sentinel.length - currentStr.length
+                repeat(count) {
+                    onSendKeyInput(null, "Backspace")
+                }
+                textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
+            } else if (currentStr != sentinel) {
+                onSendKeyInput(currentStr, null)
+                textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
+            }
+        },
+        keyboardOptions = KeyboardOptions(
+            imeAction = ImeAction.Default,
+            autoCorrect = true
+        ),
+        keyboardActions = KeyboardActions(
+            onDone = { onSendKeyInput(null, "Enter") },
+            onSend = { onSendKeyInput(null, "Enter") },
+            onGo = { onSendKeyInput(null, "Enter") }
+        ),
+        modifier = Modifier
+            .size(1.dp)
+            .alpha(0f)
+            .focusRequester(focusRequester)
     )
+
     val rows = listOf(
         UsePhoneRowSpec("Mouse", "Move the cursor, scroll, click", Icons.Rounded.Mouse, WireWaveTheme.Colors.accentBlue),
         UsePhoneRowSpec("Camera", "Live stream, photos, recording", Icons.Rounded.PhotoCamera, WireWaveTheme.Colors.statusOkFg)
@@ -174,53 +247,47 @@ fun ConnectedHomeScreen(
                 ) {
                     speakerTile()
                     micTile()
-                    remainingCircles.forEach { spec ->
-                        val isKeyboardActive = spec.label == "Keyboard" && activeOverlay == ScreenOverlay.KEYBOARD
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .clickable(role = Role.Button) {
-                                    if (spec.label == "Keyboard") {
-                                        onOverlayChange(
-                                            if (activeOverlay == ScreenOverlay.KEYBOARD) ScreenOverlay.NONE
-                                            else ScreenOverlay.KEYBOARD
-                                        )
-                                    } else {
-                                        Toast.makeText(context, "${spec.label} will be available in Stage 3", Toast.LENGTH_SHORT).show()
-                                    }
+                    val isKeyboardActive = isKeyboardVisible
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable(role = Role.Button) {
+                                if (isKeyboardVisible) {
+                                    keyboardController?.hide()
+                                } else {
+                                    focusRequester.requestFocus()
+                                    keyboardController?.show()
                                 }
-                                .padding(4.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(76.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isKeyboardActive) WireWaveTheme.Colors.accentBlue else WireWaveTheme.Colors.bgCard)
-                                    .border(
-                                        1.dp,
-                                        if (isKeyboardActive) WireWaveTheme.Colors.accentBlue else WireWaveTheme.Colors.borderSubtle,
-                                        CircleShape
-                                    ),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = spec.icon,
-                                    contentDescription = spec.label,
-                                    tint = if (isKeyboardActive) Color.White else WireWaveTheme.Colors.textSecondary,
-                                    modifier = Modifier.size(28.dp)
-                                )
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = spec.label,
-                                color = WireWaveTheme.Colors.textPrimary,
-                                fontSize = WireWaveTheme.Typography.badge,
-                                fontWeight = FontWeight.SemiBold
+                            .padding(4.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(76.dp)
+                                .clip(CircleShape)
+                                .background(if (isKeyboardActive) WireWaveTheme.Colors.accentBlue else WireWaveTheme.Colors.bgCard)
+                                .border(
+                                    1.dp,
+                                    if (isKeyboardActive) WireWaveTheme.Colors.accentBlue else WireWaveTheme.Colors.borderSubtle,
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.Keyboard,
+                                contentDescription = "Keyboard",
+                                tint = if (isKeyboardActive) Color.White else WireWaveTheme.Colors.textSecondary,
+                                modifier = Modifier.size(28.dp)
                             )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            ComingSoonBadge()
                         }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Keyboard",
+                            color = WireWaveTheme.Colors.textPrimary,
+                            fontSize = WireWaveTheme.Typography.badge,
+                            fontWeight = FontWeight.SemiBold
+                        )
                     }
                 }
             }
@@ -304,9 +371,12 @@ fun ConnectedHomeScreen(
             }
         }
 
-        // Screen Overlay Host (Keyboard or Controls popping up on the current screen)
+        // Screen Overlay Host (Controls popping up on the current screen)
         ScreenOverlayHost(
             overlay = activeOverlay,
+            onControlKeyClick = { code ->
+                onSendKeyInput(null, code)
+            },
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()

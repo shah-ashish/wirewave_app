@@ -78,12 +78,15 @@ class SessionController(
     val micState: StateFlow<FeatureRemoteState> = _micState.asStateFlow()
     private val _mouseState = MutableStateFlow(FeatureRemoteState(channel = ChannelId.MOUSE, allowed = true))
     val mouseState: StateFlow<FeatureRemoteState> = _mouseState.asStateFlow()
+    private val _cameraState = MutableStateFlow(FeatureRemoteState(channel = ChannelId.CAMERA, allowed = true))
+    val cameraState: StateFlow<FeatureRemoteState> = _cameraState.asStateFlow()
     private val outboundControls = AtomicReference<OutboundControlQueue?>(null)
 
     fun featureState(channel: ChannelId): StateFlow<FeatureRemoteState> = when (channel) {
         ChannelId.SPEAKER -> speakerState
         ChannelId.MIC -> micState
         ChannelId.MOUSE -> mouseState
+        ChannelId.CAMERA -> cameraState
         else -> MutableStateFlow(FeatureRemoteState(channel = channel, allowed = false)).asStateFlow()
     }
 
@@ -92,6 +95,7 @@ class SessionController(
             ChannelId.SPEAKER -> requestSpeakerActive(active)
             ChannelId.MIC -> requestMicActive(active)
             ChannelId.MOUSE -> requestMouseActive(active)
+            ChannelId.CAMERA -> requestCameraActive(active)
             else -> outboundControls.get()?.trySendFeature(channel, active)
         }
     }
@@ -134,6 +138,11 @@ class SessionController(
     fun requestMouseActive(active: Boolean) {
         if (active && !_mouseState.value.allowed) return
         outboundControls.get()?.trySendFeature(ChannelId.MOUSE, active)
+    }
+
+    fun requestCameraActive(active: Boolean) {
+        if (active && !_cameraState.value.allowed) return
+        outboundControls.get()?.trySendFeature(ChannelId.CAMERA, active)
     }
 
     fun sendKeyInput(text: String? = null, keyCode: String? = null) {
@@ -501,6 +510,24 @@ class SessionController(
                                         )
                                     }
                                 }
+                                "camera_state" -> {
+                                    val active = msg.optBoolean("active", false)
+                                    val key = msg.optString("udp_key_hex")
+                                        .takeIf { active && it.length == 64 }
+                                        ?.hexToBytesOrNull()
+                                    _cameraState.update {
+                                        FeatureRemoteState(
+                                            channel = ChannelId.CAMERA,
+                                            allowed = msg.optBoolean("allowed", false),
+                                            active = active,
+                                            hostAddress = hostAddress,
+                                            udpPort = msg.optInt("udp_port").takeIf { active && it > 0 },
+                                            streamId = msg.optInt("stream_id").takeIf { active },
+                                            udpKey = key,
+                                            detail = msg.optString("detail").takeIf { it.isNotBlank() }
+                                        )
+                                    }
+                                }
                                 "disconnect" -> break
                             }
                         }
@@ -517,6 +544,7 @@ class SessionController(
             _speakerState.update { FeatureRemoteState(channel = ChannelId.SPEAKER, allowed = true) }
             _micState.update { FeatureRemoteState(channel = ChannelId.MIC, allowed = false) }
             _mouseState.update { FeatureRemoteState(channel = ChannelId.MOUSE, allowed = true) }
+            _cameraState.update { FeatureRemoteState(channel = ChannelId.CAMERA, allowed = true) }
             _state.update { ClientSessionState.Disconnected() }
         }
     }
@@ -527,6 +555,7 @@ class SessionController(
         _speakerState.update { FeatureRemoteState(channel = ChannelId.SPEAKER, allowed = true) }
         _micState.update { FeatureRemoteState(channel = ChannelId.MIC, allowed = false) }
         _mouseState.update { FeatureRemoteState(channel = ChannelId.MOUSE, allowed = true) }
+        _cameraState.update { FeatureRemoteState(channel = ChannelId.CAMERA, allowed = true) }
         _state.update { ClientSessionState.Disconnected(message) }
     }
 

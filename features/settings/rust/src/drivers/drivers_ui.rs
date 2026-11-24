@@ -8,6 +8,7 @@ use wirewave_core_config::THEME;
 pub trait HasDriverActions: 'static {
     fn refresh_drivers(&mut self);
     fn download_recommended_driver(&mut self);
+    fn download_recommended_camera_driver(&mut self);
 }
 
 pub fn render_drivers_section<V: Render + HasDriverActions>(
@@ -109,10 +110,105 @@ pub fn render_drivers_section<V: Render + HasDriverActions>(
             )
     };
 
+    let camera_header = div()
+        .flex()
+        .flex_row()
+        .items_center()
+        .justify_between()
+        .child(section_label("VIRTUAL CAMERA DRIVER"));
+
+    let camera_row = if let Some(driver) = &state.camera_installed {
+        div()
+            .px(px(metrics.spacing_md))
+            .py(px(14.0))
+            .flex()
+            .flex_row()
+            .items_center()
+            .justify_between()
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(3.0))
+                    .child(
+                        div()
+                            .text_size(px(THEME.typography.font_body))
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(rgba(colors.text_primary))
+                            .child(driver.name.clone()),
+                    )
+                    .child(
+                        div()
+                            .text_size(px(THEME.typography.font_badge - 1.0))
+                            .text_color(rgba(colors.text_secondary))
+                            .child("Compatible virtual camera driver"),
+                    ),
+            )
+            .child(status_pill(true, "Installed"))
+    } else {
+        div()
+            .px(px(metrics.spacing_md))
+            .py(px(14.0))
+            .flex()
+            .flex_row()
+            .items_center()
+            .justify_between()
+            .child(
+                div()
+                    .flex()
+                    .flex_col()
+                    .gap(px(3.0))
+                    .child(
+                        div()
+                            .text_size(px(THEME.typography.font_body))
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(rgba(colors.text_primary))
+                            .child("OBS Virtual Camera"),
+                    )
+                    .child(
+                        div()
+                            .text_size(px(THEME.typography.font_badge - 1.0))
+                            .text_color(rgba(colors.text_secondary))
+                            .child("No compatible driver found · Recommended"),
+                    ),
+            )
+            .child(
+                div()
+                    .id("download-recommended-camera-driver")
+                    .cursor_pointer()
+                    .px(px(14.0))
+                    .py(px(7.0))
+                    .rounded(px(8.0))
+                    .bg(rgba(colors.accent_blue))
+                    .text_size(px(THEME.typography.font_badge))
+                    .font_weight(FontWeight::MEDIUM)
+                    .text_color(rgba(colors.text_primary))
+                    .on_click(cx.listener(|view, _, _, cx| {
+                        view.download_recommended_camera_driver();
+                        cx.notify();
+                    }))
+                    .child("Download"),
+            )
+    };
+
     div()
         .flex()
         .flex_col()
-        .gap(px(metrics.spacing_sm))
-        .child(header)
-        .child(surface_card().child(row))
+        .gap(px(metrics.spacing_lg))
+        .child(
+            div()
+                .flex()
+                .flex_col()
+                .gap(px(metrics.spacing_sm))
+                .child(header)
+                .child(surface_card().child(row)),
+        )
+        .child(
+            div()
+                .flex()
+                .flex_col()
+                .gap(px(metrics.spacing_sm))
+                .child(camera_header)
+                .child(surface_card().child(camera_row)),
+        )
 }

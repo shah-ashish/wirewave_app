@@ -98,6 +98,11 @@ impl HasServicesSettingsActions for SettingsScreen {
         let current = self.session.snapshot().preferences.mouse_service_allowed;
         self.session.set_mouse_service_allowed(!current);
     }
+
+    fn toggle_camera_permission(&mut self) {
+        let current = self.session.snapshot().preferences.camera_service_allowed;
+        self.session.set_camera_service_allowed(!current);
+    }
 }
 
 impl HasDeviceListActions for SettingsScreen {
@@ -125,10 +130,15 @@ impl HasDeviceListActions for SettingsScreen {
 impl HasDriverActions for SettingsScreen {
     fn refresh_drivers(&mut self) {
         self.session.refresh_mic_service_state();
+        self.session.refresh_camera_service_state();
     }
 
     fn download_recommended_driver(&mut self) {
         let _ = wirewave_feature_mic::open_recommended_driver_page();
+    }
+
+    fn download_recommended_camera_driver(&mut self) {
+        let _ = wirewave_feature_camera::open_recommended_camera_driver_page();
     }
 }
 

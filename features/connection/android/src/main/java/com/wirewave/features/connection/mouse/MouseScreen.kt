@@ -21,9 +21,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -155,8 +157,7 @@ fun MouseScreen(
         modifier = modifier
             .fillMaxSize()
             .background(WireWaveTheme.Colors.bgCanvas)
-            .statusBarsPadding()
-            .navigationBarsPadding()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
         // --- Top Bar ---
         Row(
@@ -288,6 +289,9 @@ fun MouseScreen(
                 isKeyboardActive = isKeyboardVisible,
                 onHomeClick = onNavigateHome,
                 onControlsToggle = {
+                    if (isKeyboardVisible) {
+                        keyboardController?.hide()
+                    }
                     onOverlayChange(
                         if (overlayMode == ScreenOverlay.CONTROLS) ScreenOverlay.NONE
                         else ScreenOverlay.CONTROLS
@@ -298,6 +302,9 @@ fun MouseScreen(
                     if (isKeyboardVisible) {
                         keyboardController?.hide()
                     } else {
+                        if (overlayMode == ScreenOverlay.CONTROLS) {
+                            onOverlayChange(ScreenOverlay.NONE)
+                        }
                         focusRequester.requestFocus()
                         keyboardController?.show()
                     }
@@ -460,7 +467,7 @@ private fun TrackpadSurface(
                                     pointer.consume()
 
                                     if (kotlin.math.abs(dy) > 0.5f) {
-                                        mouseEngine?.sendScroll(dy, mousePrefs.scrollSpeed, false)
+                                        mouseEngine?.sendScroll(dy, mousePrefs.scrollSpeed, mousePrefs.naturalScroll)
                                     }
                                 }
                             }

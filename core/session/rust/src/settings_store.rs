@@ -16,6 +16,8 @@ pub struct ConnectionPreferences {
     pub mic_service_allowed: bool,
     #[serde(default = "default_true")]
     pub mouse_service_allowed: bool,
+    #[serde(default = "default_true")]
+    pub camera_service_allowed: bool,
 }
 
 const fn default_true() -> bool {
@@ -30,6 +32,7 @@ impl Default for ConnectionPreferences {
             speaker_service_allowed: true,
             mic_service_allowed: true,
             mouse_service_allowed: true,
+            camera_service_allowed: true,
         }
     }
 }
@@ -85,6 +88,11 @@ impl PreferencesStore {
 
     pub fn set_mouse_service_allowed(&mut self, allowed: bool) {
         self.prefs.mouse_service_allowed = allowed;
+        self.persist();
+    }
+
+    pub fn set_camera_service_allowed(&mut self, allowed: bool) {
+        self.prefs.camera_service_allowed = allowed;
         self.persist();
     }
 

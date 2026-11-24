@@ -84,6 +84,8 @@ class AppContainer(context: Context) {
     val speakerEngine: SpeakerEngine = SpeakerEngine(appScope)
     val micCaptureEngine: MicCaptureEngine = MicCaptureEngine(appScope)
     val mouseEngine: MouseEngine = MouseEngine(appScope)
+    val cameraStreamEngine: com.wirewave.features.connection.camera.CameraStreamEngine =
+        com.wirewave.features.connection.camera.CameraStreamEngine(appScope)
 
     fun updateMicrophoneForeground(active: Boolean, pcName: String) {
         if (active || trustStore.connectionPrefs.value.keepAliveInBackground) {

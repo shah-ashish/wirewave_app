@@ -10,11 +10,13 @@ pub trait HasServicesSettingsActions: 'static {
     fn toggle_speaker_permission(&mut self);
     fn toggle_mic_permission(&mut self);
     fn toggle_mouse_permission(&mut self);
+    fn toggle_camera_permission(&mut self);
     fn toggle_permission_for_channel(&mut self, channel: ChannelId) {
         match channel {
             ChannelId::Speaker => self.toggle_speaker_permission(),
             ChannelId::Mic => self.toggle_mic_permission(),
             ChannelId::Mouse => self.toggle_mouse_permission(),
+            ChannelId::Camera => self.toggle_camera_permission(),
             _ => {}
         }
     }

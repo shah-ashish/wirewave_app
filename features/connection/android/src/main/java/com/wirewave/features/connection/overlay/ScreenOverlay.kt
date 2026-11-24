@@ -49,22 +49,13 @@ enum class ScreenOverlay {
     CONTROLS
 }
 
-/** Host container that displays the active overlay (Keyboard or Controls) with smooth animation. */
+/** Host container that displays the active overlay (Controls) with smooth animation. */
 @Composable
 fun ScreenOverlayHost(
     overlay: ScreenOverlay,
     onControlKeyClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    AnimatedVisibility(
-        visible = overlay == ScreenOverlay.KEYBOARD,
-        enter = fadeIn() + expandVertically(),
-        exit = fadeOut() + shrinkVertically(),
-        modifier = modifier
-    ) {
-        VirtualKeyboardOverlay()
-    }
-
     AnimatedVisibility(
         visible = overlay == ScreenOverlay.CONTROLS,
         enter = fadeIn() + expandVertically(),

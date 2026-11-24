@@ -1,5 +1,14 @@
 package com.wirewave.features.connection.camera
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.Preview
+import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -20,24 +29,27 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.FlipCameraAndroid
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MicOff
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.SwapVert
 import androidx.compose.material.icons.rounded.Videocam
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -49,11 +61,16 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import com.wirewave.core.config.WireWaveTheme
+import java.util.concurrent.Executors
 
 enum class CameraCaptureMode {
     PHOTO,
@@ -67,10 +84,41 @@ fun CameraScreen(
     onToggleSpeaker: () -> Unit,
     onToggleMic: () -> Unit,
     onBack: () -> Unit,
+    onCameraActiveChanged: (Boolean) -> Unit = {},
+    cameraStreamEngine: CameraStreamEngine? = null,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    var hasCameraPermission by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        )
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        hasCameraPermission = granted
+    }
+
     var captureMode by remember { mutableStateOf(CameraCaptureMode.PHOTO) }
+    var lensFacing by remember { mutableIntStateOf(CameraSelector.LENS_FACING_BACK) }
     var focusPoint by remember { mutableStateOf<Offset?>(null) }
+
+    LaunchedEffect(Unit) {
+        if (!hasCameraPermission) {
+            permissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onCameraActiveChanged(true)
+        onDispose {
+            onCameraActiveChanged(false)
+        }
+    }
 
     Column(
         modifier = modifier
@@ -160,7 +208,7 @@ fun CameraScreen(
                     )
                 }
 
-                // Swap / Status Button (Visual only)
+                // Status Button
                 Box(
                     modifier = Modifier
                         .size(38.dp)
@@ -171,7 +219,7 @@ fun CameraScreen(
                     Icon(
                         imageVector = Icons.Rounded.SwapVert,
                         contentDescription = "Transport status",
-                        tint = WireWaveTheme.Colors.textSecondary,
+                        tint = WireWaveTheme.Colors.statusOkFg,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -190,22 +238,108 @@ fun CameraScreen(
                 },
             contentAlignment = Alignment.Center
         ) {
-            val centerReticle = focusPoint
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val center = centerReticle ?: Offset(size.width / 2f, size.height / 2f)
-                // Reticle outer ring
-                drawCircle(
-                    color = WireWaveTheme.Colors.accentBlue.copy(alpha = 0.8f),
-                    radius = 24.dp.toPx(),
-                    center = center,
-                    style = Stroke(width = 1.5.dp.toPx())
+            if (hasCameraPermission) {
+                AndroidView(
+                    factory = { ctx ->
+                        val previewView = PreviewView(ctx)
+                        val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
+                        val analysisExecutor = Executors.newSingleThreadExecutor()
+
+                        cameraProviderFuture.addListener({
+                            val cameraProvider = cameraProviderFuture.get()
+                            val preview = Preview.Builder().build().also {
+                                it.setSurfaceProvider(previewView.surfaceProvider)
+                            }
+
+                            val cameraSelector = CameraSelector.Builder()
+                                .requireLensFacing(lensFacing)
+                                .build()
+
+                            val imageAnalysis = ImageAnalysis.Builder()
+                                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                .build()
+
+                            imageAnalysis.setAnalyzer(analysisExecutor) { imageProxy ->
+                                cameraStreamEngine?.sendFrame(imageProxy) ?: imageProxy.close()
+                            }
+
+                            try {
+                                cameraProvider.unbindAll()
+                                cameraProvider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    cameraSelector,
+                                    preview,
+                                    imageAnalysis
+                                )
+                            } catch (_: Exception) {}
+                        }, ContextCompat.getMainExecutor(ctx))
+
+                        previewView
+                    },
+                    modifier = Modifier.fillMaxSize(),
+                    update = { previewView ->
+                        val cameraProviderFuture = ProcessCameraProvider.getInstance(previewView.context)
+                        val analysisExecutor = Executors.newSingleThreadExecutor()
+                        cameraProviderFuture.addListener({
+                            val cameraProvider = cameraProviderFuture.get()
+                            val preview = Preview.Builder().build().also {
+                                it.setSurfaceProvider(previewView.surfaceProvider)
+                            }
+                            val cameraSelector = CameraSelector.Builder()
+                                .requireLensFacing(lensFacing)
+                                .build()
+                            val imageAnalysis = ImageAnalysis.Builder()
+                                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                .build()
+                            imageAnalysis.setAnalyzer(analysisExecutor) { imageProxy ->
+                                cameraStreamEngine?.sendFrame(imageProxy) ?: imageProxy.close()
+                            }
+                            try {
+                                cameraProvider.unbindAll()
+                                cameraProvider.bindToLifecycle(
+                                    lifecycleOwner,
+                                    cameraSelector,
+                                    preview,
+                                    imageAnalysis
+                                )
+                            } catch (_: Exception) {}
+                        }, ContextCompat.getMainExecutor(previewView.context))
+                    }
                 )
-                // Reticle center dot
-                drawCircle(
-                    color = WireWaveTheme.Colors.accentBlue,
-                    radius = 2.5.dp.toPx(),
-                    center = center
-                )
+
+                // Reticle Canvas overlay
+                val centerReticle = focusPoint
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    val center = centerReticle ?: Offset(size.width / 2f, size.height / 2f)
+                    drawCircle(
+                        color = WireWaveTheme.Colors.accentBlue.copy(alpha = 0.8f),
+                        radius = 24.dp.toPx(),
+                        center = center,
+                        style = Stroke(width = 1.5.dp.toPx())
+                    )
+                    drawCircle(
+                        color = WireWaveTheme.Colors.accentBlue,
+                        radius = 2.5.dp.toPx(),
+                        center = center
+                    )
+                }
+            } else {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "Camera permission is required to stream video",
+                        color = Color.White,
+                        fontSize = 15.sp
+                    )
+                    Button(
+                        onClick = { permissionLauncher.launch(Manifest.permission.CAMERA) },
+                        colors = ButtonDefaults.buttonColors(containerColor = WireWaveTheme.Colors.accentBlue)
+                    ) {
+                        Text("Grant Permission", color = Color.White)
+                    }
+                }
             }
         }
 
@@ -237,7 +371,13 @@ fun CameraScreen(
                         .size(48.dp)
                         .clip(CircleShape)
                         .background(Color(0xFF1C1C1E))
-                        .clickable(role = Role.Button, onClick = {}),
+                        .clickable(role = Role.Button, onClick = {
+                            lensFacing = if (lensFacing == CameraSelector.LENS_FACING_BACK) {
+                                CameraSelector.LENS_FACING_FRONT
+                            } else {
+                                CameraSelector.LENS_FACING_BACK
+                            }
+                        }),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
@@ -248,12 +388,12 @@ fun CameraScreen(
                     )
                 }
 
-                // Shutter button (White ring + circle)
+                // Shutter button
                 ShutterButton(
                     isVideo = captureMode == CameraCaptureMode.VIDEO
                 )
 
-                // Effects / Filter button
+                // Effects button
                 Box(
                     modifier = Modifier
                         .size(48.dp)
@@ -289,7 +429,6 @@ private fun ModeSelectorPill(
             .padding(3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Photo Mode
         val isPhoto = currentMode == CameraCaptureMode.PHOTO
         Box(
             modifier = Modifier
@@ -307,7 +446,6 @@ private fun ModeSelectorPill(
             )
         }
 
-        // Video Mode
         val isVideo = currentMode == CameraCaptureMode.VIDEO
         Box(
             modifier = Modifier

@@ -149,6 +149,17 @@ pub enum ControlMessage {
         stream_id: Option<u32>,
         udp_key_hex: Option<String>,
     },
+    CameraCommand {
+        active: bool,
+    },
+    CameraState {
+        allowed: bool,
+        active: bool,
+        detail: Option<String>,
+        udp_port: Option<u16>,
+        stream_id: Option<u32>,
+        udp_key_hex: Option<String>,
+    },
     KeyInput {
         #[serde(default)]
         text: Option<String>,

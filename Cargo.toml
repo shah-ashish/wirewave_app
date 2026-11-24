@@ -15,11 +15,12 @@ members = [
     "features/speaker/rust",
     "features/mic/rust",
     "features/mouse/rust",
+    "features/camera/rust",
     "apps/desktop",
 ]
 
 [workspace.package]
-version = "1.2.0"
+version = "1.2.1"
 edition = "2024"
 authors = ["WireWave Team"]
 license = "MIT"
@@ -71,6 +72,7 @@ wirewave-core-stream = { path = "core/stream/rust" }
 wirewave-feature-speaker = { path = "features/speaker/rust" }
 wirewave-feature-mic = { path = "features/mic/rust" }
 wirewave-feature-mouse = { path = "features/mouse/rust" }
+wirewave-feature-camera = { path = "features/camera/rust" }
 
 [profile.release]
 opt-level = 3

@@ -31,6 +31,7 @@ impl ActiveControlChannel {
         mut speaker_policy_rx: watch::Receiver<bool>,
         mut mic_policy_rx: watch::Receiver<bool>,
         mut mouse_policy_rx: watch::Receiver<bool>,
+        mut camera_policy_rx: watch::Receiver<bool>,
     ) {
         let mut cipher = SessionCipher::new(session_key, CipherRole::Desktop);
 
@@ -87,6 +88,28 @@ impl ActiveControlChannel {
                 None,
             );
             if send_encrypted(&mut stream, &mut cipher, &initial_mouse_state).await.is_err() {
+                return;
+            }
+        }
+
+        let camera_permission = *camera_policy_rx.borrow();
+        if let Some(host) = self.feature_registry.get(ChannelId::Camera) {
+            let camera_driver = host.status_detail();
+            let camera_allowed = camera_permission && camera_driver.is_some();
+            let camera_detail = match (camera_permission, camera_driver) {
+                (false, _) => Some("Blocked by desktop settings".into()),
+                (true, None) => Some("Compatible virtual camera driver required".into()),
+                (true, Some(driver)) => Some(driver),
+            };
+            let initial_camera_state = host.make_state_message(
+                camera_allowed,
+                false,
+                camera_detail,
+                None,
+                None,
+                None,
+            );
+            if send_encrypted(&mut stream, &mut cipher, &initial_camera_state).await.is_err() {
                 return;
             }
         }
@@ -169,6 +192,35 @@ impl ActiveControlChannel {
                         let detail = match allowed {
                             false => Some("Blocked by desktop settings".into()),
                             true => host.status_detail(),
+                        };
+                        let state = host.make_state_message(
+                            allowed,
+                            false,
+                            detail,
+                            None,
+                            None,
+                            None,
+                        );
+                        if send_encrypted(&mut stream, &mut cipher, &state).await.is_err() {
+                            break;
+                        }
+                    }
+                }
+                changed = camera_policy_rx.changed() => {
+                    if changed.is_err() {
+                        break;
+                    }
+                    let permission = *camera_policy_rx.borrow();
+                    if let Some(host) = self.feature_registry.get(ChannelId::Camera) {
+                        let driver = host.status_detail();
+                        let allowed = permission && driver.is_some();
+                        if !allowed {
+                            host.stop_stream();
+                        }
+                        let detail = match (permission, driver) {
+                            (false, _) => Some("Blocked by desktop settings".into()),
+                            (true, None) => Some("Compatible virtual camera driver required".into()),
+                            (true, Some(name)) => Some(name),
                         };
                         let state = host.make_state_message(
                             allowed,
@@ -417,6 +469,79 @@ impl ActiveControlChannel {
                                             true,
                                             false,
                                             Some("Unable to open mouse stream".into()),
+                                            None,
+                                            None,
+                                            None,
+                                        );
+                                        let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                                    }
+                                }
+                            }
+                        }
+                        ControlMessage::CameraCommand { active: false } => {
+                            if let Some(host) = self.feature_registry.get(ChannelId::Camera) {
+                                host.stop_stream();
+                                let permission = *camera_policy_rx.borrow();
+                                let driver = host.status_detail();
+                                let allowed = permission && driver.is_some();
+                                let state = host.make_state_message(
+                                    allowed,
+                                    false,
+                                    match (permission, driver) {
+                                        (false, _) => Some("Blocked by desktop settings".into()),
+                                        (true, None) => Some("Compatible virtual camera driver required".into()),
+                                        (true, Some(name)) => Some(name),
+                                    },
+                                    None,
+                                    None,
+                                    None,
+                                );
+                                let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                            }
+                        }
+                        ControlMessage::CameraCommand { active: true } => {
+                            let permission = *camera_policy_rx.borrow();
+                            if let Some(host) = self.feature_registry.get(ChannelId::Camera) {
+                                let driver = host.status_detail();
+                                if !permission || driver.is_none() {
+                                    let state = host.make_state_message(
+                                        false,
+                                        false,
+                                        if permission {
+                                            Some("Compatible virtual camera driver required".into())
+                                        } else {
+                                            Some("Blocked by desktop settings".into())
+                                        },
+                                        None,
+                                        None,
+                                        None,
+                                    );
+                                    let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                                    continue;
+                                }
+
+                                host.stop_stream();
+                                let stream_id = OsRng.next_u32();
+                                let udp_key = derive_udp_key(&session_key, stream_id);
+                                match UdpDataChannel::bind(udp_key, stream_id).await {
+                                    Ok((channel, endpoint)) => {
+                                        let detail = host.start_stream(channel, tokio::runtime::Handle::current()).ok().flatten();
+                                        let state = host.make_state_message(
+                                            true,
+                                            true,
+                                            detail,
+                                            Some(endpoint.local_port),
+                                            Some(endpoint.stream_id),
+                                            Some(hex::encode(udp_key)),
+                                        );
+                                        let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
+                                    }
+                                    Err(err) => {
+                                        tracing::warn!(%err, "Unable to bind camera UDP stream");
+                                        let state = host.make_state_message(
+                                            true,
+                                            false,
+                                            Some("Unable to open camera stream".into()),
                                             None,
                                             None,
                                             None,

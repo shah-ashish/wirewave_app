@@ -96,6 +96,7 @@ struct SessionInner {
     speaker_policy_tx: watch::Sender<bool>,
     mic_policy_tx: watch::Sender<bool>,
     mouse_policy_tx: watch::Sender<bool>,
+    camera_policy_tx: watch::Sender<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -213,6 +214,7 @@ impl SessionManager {
         let (speaker_policy_tx, _) = watch::channel(prefs.get().speaker_service_allowed);
         let (mic_policy_tx, _) = watch::channel(prefs.get().mic_service_allowed);
         let (mouse_policy_tx, _) = watch::channel(prefs.get().mouse_service_allowed);
+        let (camera_policy_tx, _) = watch::channel(prefs.get().camera_service_allowed);
 
         let keypair = Arc::new(keypair);
         let handshake = HandshakeCoordinator::new(
@@ -238,6 +240,7 @@ impl SessionManager {
                 speaker_policy_tx,
                 mic_policy_tx,
                 mouse_policy_tx,
+                camera_policy_tx,
             }),
             feature_registry,
             handshake,
@@ -319,10 +322,27 @@ impl SessionManager {
         }
     }
 
+    pub fn set_camera_service_allowed(&self, allowed: bool) {
+        let mut guard = self.inner.write().expect("session lock poisoned");
+        guard.prefs.set_camera_service_allowed(allowed);
+        let _ = guard.camera_policy_tx.send(allowed);
+        if !allowed {
+            if let Some(camera) = self.feature_registry.get(ChannelId::Camera) {
+                camera.stop_stream();
+            }
+        }
+    }
+
     pub fn refresh_mic_service_state(&self) {
         let guard = self.inner.read().expect("session lock poisoned");
         let allowed = guard.prefs.get().mic_service_allowed;
         guard.mic_policy_tx.send_replace(allowed);
+    }
+
+    pub fn refresh_camera_service_state(&self) {
+        let guard = self.inner.read().expect("session lock poisoned");
+        let allowed = guard.prefs.get().camera_service_allowed;
+        guard.camera_policy_tx.send_replace(allowed);
     }
 
     pub fn disconnect_active(&self) {
@@ -658,7 +678,7 @@ impl SessionManager {
         session_key: [u8; 32],
     ) {
         let (cancel_tx, cancel_rx) = watch::channel(false);
-        let (speaker_policy_rx, mic_policy_rx, mouse_policy_rx) = {
+        let (speaker_policy_rx, mic_policy_rx, mouse_policy_rx, camera_policy_rx) = {
             let mut guard = self.inner.write().expect("session lock poisoned");
             guard.handshake_reservation = None;
             guard.active_cancel_tx = Some(cancel_tx);
@@ -671,6 +691,7 @@ impl SessionManager {
                 guard.speaker_policy_tx.subscribe(),
                 guard.mic_policy_tx.subscribe(),
                 guard.mouse_policy_tx.subscribe(),
+                guard.camera_policy_tx.subscribe(),
             )
         };
 
@@ -682,6 +703,7 @@ impl SessionManager {
                 speaker_policy_rx,
                 mic_policy_rx,
                 mouse_policy_rx,
+                camera_policy_rx,
             )
             .await;
 
