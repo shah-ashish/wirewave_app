@@ -117,6 +117,7 @@ mod tests {
     fn speaker_service_is_allowed_by_default() {
         assert!(ConnectionPreferences::default().speaker_service_allowed);
         assert!(ConnectionPreferences::default().mic_service_allowed);
+        assert!(ConnectionPreferences::default().camera_service_allowed);
     }
 
     #[test]
@@ -130,5 +131,6 @@ mod tests {
         assert!(!prefs.keep_alive_in_background);
         assert!(prefs.speaker_service_allowed);
         assert!(prefs.mic_service_allowed);
+        assert!(prefs.camera_service_allowed);
     }
 }

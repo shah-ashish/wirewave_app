@@ -72,9 +72,11 @@ mod tests {
         assert!(state.speaker_allowed);
         assert!(state.mic_allowed);
         assert!(state.mouse_allowed);
-        assert_eq!(state.items.len(), 3);
+        assert!(state.camera_allowed);
+        assert_eq!(state.items.len(), 4);
         assert!(state.items[0].enabled);
         assert!(state.items[1].enabled);
         assert!(state.items[2].enabled);
+        assert!(state.items[3].enabled);
     }
 }
