@@ -16,6 +16,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.ByteArrayOutputStream
 import java.io.IOException
+import java.nio.ByteBuffer
+import java.util.concurrent.atomic.AtomicInteger
 
 data class CameraStreamState(val isStreaming: Boolean = false, val error: String? = null)
 
@@ -23,10 +25,16 @@ class CameraStreamEngine(
     private val scope: CoroutineScope,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
+    companion object {
+        private const val CHUNK_HEADER_BYTES = 8
+        private const val MAX_CHUNK_PAYLOAD_BYTES = 1200
+    }
+
     private val _state = MutableStateFlow(CameraStreamState())
     val state: StateFlow<CameraStreamState> = _state.asStateFlow()
     private var streamClient: UdpStreamClient? = null
     private var activeJob: Job? = null
+    private val frameCounter = AtomicInteger(0)
 
     fun start(host: String, port: Int, key: ByteArray, streamId: Int) {
         stop()
@@ -48,38 +56,85 @@ class CameraStreamEngine(
             return
         }
 
+        val jpegBytes = try {
+            imageProxyToJpeg(imageProxy)
+        } catch (_: Exception) {
+            null
+        } finally {
+            imageProxy.close()
+        }
+
+        if (jpegBytes == null || jpegBytes.isEmpty()) return
+
+        val frameId = frameCounter.incrementAndGet()
         scope.launch(ioDispatcher) {
             try {
-                val jpegBytes = imageProxyToJpeg(imageProxy)
-                if (jpegBytes != null && jpegBytes.isNotEmpty()) {
-                    client.sendDatagram(ChannelId.CAMERA, jpegBytes)
-                }
+                sendChunkedFrame(client, frameId, jpegBytes)
             } catch (_: Exception) {
                 // Drop frame on transient network error
-            } finally {
-                imageProxy.close()
             }
         }
     }
 
+    private fun sendChunkedFrame(client: UdpStreamClient, frameId: Int, jpeg: ByteArray) {
+        val totalChunks = (jpeg.size + MAX_CHUNK_PAYLOAD_BYTES - 1) / MAX_CHUNK_PAYLOAD_BYTES
+        if (totalChunks <= 0) return
+
+        val packet = ByteArray(CHUNK_HEADER_BYTES + MAX_CHUNK_PAYLOAD_BYTES)
+        var offset = 0
+        for (chunkIdx in 0 until totalChunks) {
+            val chunkLen = minOf(MAX_CHUNK_PAYLOAD_BYTES, jpeg.size - offset)
+            val buf = ByteBuffer.wrap(packet, 0, CHUNK_HEADER_BYTES + chunkLen)
+            buf.putInt(frameId)
+            buf.putShort(chunkIdx.toShort())
+            buf.putShort(totalChunks.toShort())
+            System.arraycopy(jpeg, offset, packet, CHUNK_HEADER_BYTES, chunkLen)
+
+            val slice = if (chunkLen == MAX_CHUNK_PAYLOAD_BYTES) packet else packet.copyOf(CHUNK_HEADER_BYTES + chunkLen)
+            client.sendDatagram(ChannelId.CAMERA, slice)
+            offset += chunkLen
+        }
+    }
+
     private fun imageProxyToJpeg(image: ImageProxy): ByteArray? {
-        val yBuffer = image.planes[0].buffer
-        val uBuffer = image.planes[1].buffer
-        val vBuffer = image.planes[2].buffer
+        val width = image.width
+        val height = image.height
+        val yPlane = image.planes[0]
+        val uPlane = image.planes[1]
+        val vPlane = image.planes[2]
 
-        val ySize = yBuffer.remaining()
-        val uSize = uBuffer.remaining()
-        val vSize = vBuffer.remaining()
+        val nv21 = ByteArray(width * height * 3 / 2)
 
-        val nv21 = ByteArray(ySize + uSize + vSize)
-        yBuffer.get(nv21, 0, ySize)
-        vBuffer.get(nv21, ySize, vSize)
-        uBuffer.get(nv21, ySize + vSize, uSize)
+        // Copy Y plane respecting rowStride
+        val yBuf = yPlane.buffer
+        val yRowStride = yPlane.rowStride
+        var dstPos = 0
+        for (row in 0 until height) {
+            yBuf.position(row * yRowStride)
+            yBuf.get(nv21, dstPos, width)
+            dstPos += width
+        }
 
-        val yuvImage = YuvImage(nv21, ImageFormat.NV21, image.width, image.height, null)
+        // Copy interleaved VU for NV21 respecting rowStride and pixelStride
+        val uBuf = uPlane.buffer
+        val vBuf = vPlane.buffer
+        val uvRowStride = uPlane.rowStride
+        val uvPixelStride = uPlane.pixelStride
+        val halfW = width / 2
+        val halfH = height / 2
+
+        for (row in 0 until halfH) {
+            for (col in 0 until halfW) {
+                val uvIndex = row * uvRowStride + col * uvPixelStride
+                nv21[dstPos++] = vBuf.get(uvIndex)
+                nv21[dstPos++] = uBuf.get(uvIndex)
+            }
+        }
+
+        val yuvImage = YuvImage(nv21, ImageFormat.NV21, width, height, null)
         val out = ByteArrayOutputStream()
-        val rect = Rect(0, 0, image.width, image.height)
-        val compressed = yuvImage.compressToJpeg(rect, 70, out)
+        val rect = Rect(0, 0, width, height)
+        val compressed = yuvImage.compressToJpeg(rect, 85, out)
         return if (compressed) out.toByteArray() else null
     }
 

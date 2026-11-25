@@ -16,11 +16,12 @@ members = [
     "features/mic/rust",
     "features/mouse/rust",
     "features/camera/rust",
+    "features/camera/vcam_dll",
     "apps/desktop",
 ]
 
 [workspace.package]
-version = "1.2.2"
+version = "1.2.3"
 edition = "2024"
 authors = ["WireWave Team"]
 license = "MIT"
@@ -46,16 +47,22 @@ x25519-dalek = { version = "2.0", features = ["static_secrets"] }
 chacha20poly1305 = "0.10"
 rand_core = { version = "0.6", features = ["getrandom"] }
 zeroize = { version = "1.8", features = ["derive"] }
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
 windows = { version = "0.58", features = [
     "Win32_Devices_Bluetooth",
     "Win32_Foundation",
+    "Win32_Media_MediaFoundation",
     "Win32_Networking_WinSock",
     "Win32_Security",
     "Win32_System_Com",
+    "Win32_System_Com_StructuredStorage",
+    "Win32_System_Memory",
     "Win32_System_Registry",
     "Win32_System_SystemInformation",
     "Win32_System_Threading",
+    "Win32_System_Variant",
     "Win32_UI_Input_KeyboardAndMouse",
+    "implement",
 ] }
 
 wirewave-core-config = { path = "core/config/rust" }

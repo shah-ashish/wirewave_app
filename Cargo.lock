@@ -7241,7 +7241,9 @@ name = "wirewave-feature-camera"
 version = "1.2.2"
 dependencies = [
  "gpui",
+ "image",
  "open",
+ "smallvec",
  "tokio",
  "tracing",
  "windows 0.58.0",
@@ -7320,6 +7322,14 @@ dependencies = [
  "wirewave-core-config",
  "wirewave-core-session",
  "wirewave-core-stream",
+]
+
+[[package]]
+name = "wirewave-vcam"
+version = "1.2.2"
+dependencies = [
+ "windows 0.58.0",
+ "windows-core 0.58.0",
 ]
 
 [[package]]

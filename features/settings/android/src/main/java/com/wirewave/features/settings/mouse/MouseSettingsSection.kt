@@ -30,6 +30,7 @@ fun MouseSettingsSection(
     onPointerSpeedChange: (Float) -> Unit,
     onScrollSpeedChange: (Float) -> Unit,
     onToggleNaturalScroll: (Boolean) -> Unit,
+    onToggleShowMouseButtons: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -92,6 +93,47 @@ fun MouseSettingsSection(
                 Switch(
                     checked = prefs.naturalScroll,
                     onCheckedChange = onToggleNaturalScroll,
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = WireWaveTheme.Colors.textPrimary,
+                        checkedTrackColor = WireWaveTheme.Colors.accentBlue,
+                        uncheckedThumbColor = WireWaveTheme.Colors.textSecondary,
+                        uncheckedTrackColor = WireWaveTheme.Colors.bgCardHover
+                    )
+                )
+            }
+
+            HorizontalDivider(thickness = 1.dp, color = WireWaveTheme.Colors.divider)
+
+            // Row 4: On-Screen Click Buttons Switch
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = WireWaveTheme.Metrics.spacingMd, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
+                    Text(
+                        text = "On-screen click buttons",
+                        color = WireWaveTheme.Colors.textPrimary,
+                        fontSize = WireWaveTheme.Typography.body,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = if (prefs.showMouseButtons) {
+                            "Show dedicated left and right click buttons below trackpad"
+                        } else {
+                            "Hide click buttons (use tap gestures on trackpad)"
+                        },
+                        color = WireWaveTheme.Colors.textSecondary,
+                        fontSize = WireWaveTheme.Typography.badge
+                    )
+                }
+
+                Switch(
+                    checked = prefs.showMouseButtons,
+                    onCheckedChange = onToggleShowMouseButtons,
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = WireWaveTheme.Colors.textPrimary,
                         checkedTrackColor = WireWaveTheme.Colors.accentBlue,

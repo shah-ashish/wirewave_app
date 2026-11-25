@@ -19,13 +19,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -33,7 +32,6 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
@@ -42,7 +40,7 @@ import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MicOff
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -106,59 +104,66 @@ fun MouseScreen(
         mutableStateOf(TextFieldValue(sentinel, TextRange(sentinel.length)))
     }
 
-    // Hidden input field that triggers and captures Android native keyboard input (Gboard, Samsung, etc.)
-    BasicTextField(
-        value = textValue,
-        onValueChange = { newText ->
-            val currentStr = newText.text
-            if (currentStr.length > sentinel.length) {
-                val added = currentStr.substring(sentinel.length)
-                if (added.contains("\n")) {
-                    val parts = added.split("\n")
-                    parts.forEachIndexed { index, part ->
-                        if (part.isNotEmpty()) {
-                            onSendKeyInput(part, null)
-                        }
-                        if (index < parts.size - 1) {
-                            onSendKeyInput(null, "Enter")
-                        }
-                    }
-                } else {
-                    onSendKeyInput(added, null)
-                }
-                textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
-            } else if (currentStr.length < sentinel.length) {
-                val count = sentinel.length - currentStr.length
-                repeat(count) {
-                    onSendKeyInput(null, "Backspace")
-                }
-                textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
-            } else if (currentStr != sentinel) {
-                onSendKeyInput(currentStr, null)
-                textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
-            }
-        },
-        keyboardOptions = KeyboardOptions(
-            imeAction = ImeAction.Default,
-            autoCorrect = true
-        ),
-        keyboardActions = KeyboardActions(
-            onDone = { onSendKeyInput(null, "Enter") },
-            onSend = { onSendKeyInput(null, "Enter") },
-            onGo = { onSendKeyInput(null, "Enter") }
-        ),
-        modifier = Modifier
-            .size(1.dp)
-            .alpha(0f)
-            .focusRequester(focusRequester)
-    )
-
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(WireWaveTheme.Colors.bgCanvas)
-            .windowInsetsPadding(WindowInsets.safeDrawing)
     ) {
+        // Hidden input field that triggers and captures Android native keyboard input (Gboard, Samsung, etc.)
+        BasicTextField(
+            value = textValue,
+            onValueChange = { newText ->
+                val currentStr = newText.text
+                if (currentStr.length > sentinel.length) {
+                    val added = currentStr.substring(sentinel.length)
+                    if (added.contains("\n")) {
+                        val parts = added.split("\n")
+                        parts.forEachIndexed { index, part ->
+                            if (part.isNotEmpty()) {
+                                onSendKeyInput(part, null)
+                            }
+                            if (index < parts.size - 1) {
+                                onSendKeyInput(null, "Enter")
+                            }
+                        }
+                    } else {
+                        onSendKeyInput(added, null)
+                    }
+                    textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
+                } else if (currentStr.length < sentinel.length) {
+                    val count = sentinel.length - currentStr.length
+                    repeat(count) {
+                        onSendKeyInput(null, "Backspace")
+                    }
+                    textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
+                } else if (currentStr != sentinel) {
+                    onSendKeyInput(currentStr, null)
+                    textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
+                }
+            },
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Default,
+                autoCorrect = true
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { onSendKeyInput(null, "Enter") },
+                onSend = { onSendKeyInput(null, "Enter") },
+                onGo = { onSendKeyInput(null, "Enter") }
+            ),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .size(1.dp)
+                .alpha(0f)
+                .focusRequester(focusRequester)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
+        ) {
         // --- Top Bar ---
         Row(
             modifier = Modifier
@@ -252,27 +257,29 @@ fun MouseScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        if (mousePrefs.showMouseButtons) {
+            Spacer(modifier = Modifier.height(10.dp))
 
-        // --- Mouse Click Buttons (Left / Right) ---
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            MouseClickButton(
-                leftSelected = true,
-                buttonId = MouseEngine.BUTTON_LEFT,
-                mouseEngine = mouseEngine,
-                modifier = Modifier.weight(1f)
-            )
-            MouseClickButton(
-                leftSelected = false,
-                buttonId = MouseEngine.BUTTON_RIGHT,
-                mouseEngine = mouseEngine,
-                modifier = Modifier.weight(1f)
-            )
+            // --- Mouse Click Buttons (Left / Right) ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                MouseClickButton(
+                    leftSelected = true,
+                    buttonId = MouseEngine.BUTTON_LEFT,
+                    mouseEngine = mouseEngine,
+                    modifier = Modifier.weight(1f)
+                )
+                MouseClickButton(
+                    leftSelected = false,
+                    buttonId = MouseEngine.BUTTON_RIGHT,
+                    mouseEngine = mouseEngine,
+                    modifier = Modifier.weight(1f)
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(10.dp))
@@ -321,6 +328,7 @@ fun MouseScreen(
         )
 
         Spacer(modifier = Modifier.height(6.dp))
+        }
     }
 }
 
@@ -638,9 +646,9 @@ private fun BottomDock(
             onClick = onHomeClick
         )
 
-        // 2. Controls (+)
+        // 2. Controls
         DockIconButton(
-            icon = Icons.Rounded.Add,
+            icon = Icons.Rounded.Tune,
             contentDescription = "Controls",
             isActive = overlayMode == ScreenOverlay.CONTROLS,
             onClick = onControlsToggle

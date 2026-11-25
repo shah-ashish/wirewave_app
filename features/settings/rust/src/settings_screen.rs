@@ -140,6 +140,11 @@ impl HasDriverActions for SettingsScreen {
     fn download_recommended_camera_driver(&mut self) {
         let _ = wirewave_feature_camera::open_recommended_camera_driver_page();
     }
+
+    fn select_camera_backend(&mut self, backend: wirewave_feature_camera::CameraBackendPreference) {
+        wirewave_feature_camera::set_preferred_camera_backend(backend);
+        self.session.refresh_camera_service_state();
+    }
 }
 
 impl Render for SettingsScreen {

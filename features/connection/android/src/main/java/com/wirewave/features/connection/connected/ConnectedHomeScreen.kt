@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -100,53 +101,6 @@ fun ConnectedHomeScreen(
         mutableStateOf(TextFieldValue(sentinel, TextRange(sentinel.length)))
     }
 
-    // Hidden input field that triggers and captures Android native keyboard input (Gboard, Samsung, etc.)
-    BasicTextField(
-        value = textValue,
-        onValueChange = { newText ->
-            val currentStr = newText.text
-            if (currentStr.length > sentinel.length) {
-                val added = currentStr.substring(sentinel.length)
-                if (added.contains("\n")) {
-                    val parts = added.split("\n")
-                    parts.forEachIndexed { index, part ->
-                        if (part.isNotEmpty()) {
-                            onSendKeyInput(part, null)
-                        }
-                        if (index < parts.size - 1) {
-                            onSendKeyInput(null, "Enter")
-                        }
-                    }
-                } else {
-                    onSendKeyInput(added, null)
-                }
-                textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
-            } else if (currentStr.length < sentinel.length) {
-                val count = sentinel.length - currentStr.length
-                repeat(count) {
-                    onSendKeyInput(null, "Backspace")
-                }
-                textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
-            } else if (currentStr != sentinel) {
-                onSendKeyInput(currentStr, null)
-                textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
-            }
-        },
-        keyboardOptions = KeyboardOptions(
-            imeAction = ImeAction.Default,
-            autoCorrect = true
-        ),
-        keyboardActions = KeyboardActions(
-            onDone = { onSendKeyInput(null, "Enter") },
-            onSend = { onSendKeyInput(null, "Enter") },
-            onGo = { onSendKeyInput(null, "Enter") }
-        ),
-        modifier = Modifier
-            .size(1.dp)
-            .alpha(0f)
-            .focusRequester(focusRequester)
-    )
-
     val rows = listOf(
         UsePhoneRowSpec("Mouse", "Move the cursor, scroll, click", Icons.Rounded.Mouse, WireWaveTheme.Colors.accentBlue),
         UsePhoneRowSpec("Camera", "Live stream, photos, recording", Icons.Rounded.PhotoCamera, WireWaveTheme.Colors.statusOkFg)
@@ -157,10 +111,59 @@ fun ConnectedHomeScreen(
             .fillMaxSize()
             .background(WireWaveTheme.Colors.bgCanvas)
     ) {
+        // Hidden input field that triggers and captures Android native keyboard input (Gboard, Samsung, etc.)
+        BasicTextField(
+            value = textValue,
+            onValueChange = { newText ->
+                val currentStr = newText.text
+                if (currentStr.length > sentinel.length) {
+                    val added = currentStr.substring(sentinel.length)
+                    if (added.contains("\n")) {
+                        val parts = added.split("\n")
+                        parts.forEachIndexed { index, part ->
+                            if (part.isNotEmpty()) {
+                                onSendKeyInput(part, null)
+                            }
+                            if (index < parts.size - 1) {
+                                onSendKeyInput(null, "Enter")
+                            }
+                        }
+                    } else {
+                        onSendKeyInput(added, null)
+                    }
+                    textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
+                } else if (currentStr.length < sentinel.length) {
+                    val count = sentinel.length - currentStr.length
+                    repeat(count) {
+                        onSendKeyInput(null, "Backspace")
+                    }
+                    textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
+                } else if (currentStr != sentinel) {
+                    onSendKeyInput(currentStr, null)
+                    textValue = TextFieldValue(sentinel, TextRange(sentinel.length))
+                }
+            },
+            keyboardOptions = KeyboardOptions(
+                imeAction = ImeAction.Default,
+                autoCorrect = true
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { onSendKeyInput(null, "Enter") },
+                onSend = { onSendKeyInput(null, "Enter") },
+                onGo = { onSendKeyInput(null, "Enter") }
+            ),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .size(1.dp)
+                .alpha(0f)
+                .focusRequester(focusRequester)
+        )
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .statusBarsPadding()
+                .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = WireWaveTheme.Metrics.spacingMd, vertical = WireWaveTheme.Metrics.spacingSm)
                 .padding(bottom = if (activeOverlay != ScreenOverlay.NONE) 280.dp else 16.dp),
@@ -355,7 +358,7 @@ fun ConnectedHomeScreen(
                                     )
                                 }
                             }
-                            if (row.title == "Mouse") {
+                            if (row.title == "Mouse" || row.title == "Camera") {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                                     contentDescription = "Open ${row.title}",

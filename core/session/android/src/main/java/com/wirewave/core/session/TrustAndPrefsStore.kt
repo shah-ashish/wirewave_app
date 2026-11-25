@@ -15,7 +15,8 @@ data class ConnectionPrefs(
 data class MousePrefs(
     val pointerSpeed: Float = 1.0f,
     val scrollSpeed: Float = 1.0f,
-    val naturalScroll: Boolean = true
+    val naturalScroll: Boolean = true,
+    val showMouseButtons: Boolean = true
 )
 
 data class TrustedDesktop(
@@ -46,6 +47,11 @@ class TrustAndPrefsStore(context: Context) {
     fun setNaturalScroll(natural: Boolean) {
         prefs.edit().putBoolean(KEY_MOUSE_NATURAL_SCROLL, natural).apply()
         _mousePrefs.update { it.copy(naturalScroll = natural) }
+    }
+
+    fun setShowMouseButtons(show: Boolean) {
+        prefs.edit().putBoolean(KEY_MOUSE_SHOW_BUTTONS, show).apply()
+        _mousePrefs.update { it.copy(showMouseButtons = show) }
     }
 
     fun setAutoConnect(enabled: Boolean) {
@@ -134,7 +140,8 @@ class TrustAndPrefsStore(context: Context) {
     private fun loadMousePrefs(): MousePrefs = MousePrefs(
         pointerSpeed = prefs.getFloat(KEY_MOUSE_POINTER_SPEED, 1.0f).coerceIn(0.5f, 3.0f),
         scrollSpeed = prefs.getFloat(KEY_MOUSE_SCROLL_SPEED, 1.0f).coerceIn(0.5f, 3.0f),
-        naturalScroll = prefs.getBoolean(KEY_MOUSE_NATURAL_SCROLL, true)
+        naturalScroll = prefs.getBoolean(KEY_MOUSE_NATURAL_SCROLL, true),
+        showMouseButtons = prefs.getBoolean(KEY_MOUSE_SHOW_BUTTONS, true)
     )
 
     companion object {
@@ -144,6 +151,7 @@ class TrustAndPrefsStore(context: Context) {
         private const val KEY_MOUSE_POINTER_SPEED = "mouse_pointer_speed"
         private const val KEY_MOUSE_SCROLL_SPEED = "mouse_scroll_speed"
         private const val KEY_MOUSE_NATURAL_SCROLL = "mouse_natural_scroll"
+        private const val KEY_MOUSE_SHOW_BUTTONS = "mouse_show_buttons"
         private const val KEY_LAST_DESKTOP_ID = "last_desktop_id"
         private const val KEY_EXPLICIT_DISCONNECT = "explicit_disconnect"
         private const val TRUST_PREFIX = "trusted_"

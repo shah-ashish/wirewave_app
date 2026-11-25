@@ -2,11 +2,14 @@ package com.wirewave.features.connection.camera
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.animateFloatAsState
@@ -39,7 +42,7 @@ import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MicOff
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.SwapVert
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -84,6 +87,7 @@ fun CameraScreen(
     onToggleSpeaker: () -> Unit,
     onToggleMic: () -> Unit,
     onBack: () -> Unit,
+    onNavigateSettings: () -> Unit = {},
     onCameraActiveChanged: (Boolean) -> Unit = {},
     cameraStreamEngine: CameraStreamEngine? = null,
     modifier: Modifier = Modifier
@@ -208,18 +212,19 @@ fun CameraScreen(
                     )
                 }
 
-                // Status Button
+                // Settings Button
                 Box(
                     modifier = Modifier
                         .size(38.dp)
                         .clip(CircleShape)
-                        .background(WireWaveTheme.Colors.bgCard),
+                        .background(WireWaveTheme.Colors.bgCard)
+                        .clickable(role = Role.Button, onClick = onNavigateSettings),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.SwapVert,
-                        contentDescription = "Transport status",
-                        tint = WireWaveTheme.Colors.statusOkFg,
+                        imageVector = Icons.Rounded.Settings,
+                        contentDescription = "Settings",
+                        tint = WireWaveTheme.Colors.textSecondary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
@@ -239,72 +244,58 @@ fun CameraScreen(
             contentAlignment = Alignment.Center
         ) {
             if (hasCameraPermission) {
+                val analysisExecutor = remember { Executors.newSingleThreadExecutor() }
+                var previewViewRef by remember { mutableStateOf<PreviewView?>(null) }
+
+                DisposableEffect(Unit) {
+                    onDispose {
+                        analysisExecutor.shutdown()
+                    }
+                }
+
+                LaunchedEffect(previewViewRef, lensFacing) {
+                    val previewView = previewViewRef ?: return@LaunchedEffect
+                    val cameraProviderFuture = ProcessCameraProvider.getInstance(previewView.context)
+                    cameraProviderFuture.addListener({
+                        val cameraProvider = cameraProviderFuture.get()
+                        val preview = Preview.Builder().build().also {
+                            it.setSurfaceProvider(previewView.surfaceProvider)
+                        }
+                        val cameraSelector = CameraSelector.Builder()
+                            .requireLensFacing(lensFacing)
+                            .build()
+                        val resolutionSelector = ResolutionSelector.Builder()
+                            .setResolutionStrategy(
+                                ResolutionStrategy(
+                                    Size(1280, 720),
+                                    ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER
+                                )
+                            )
+                            .build()
+                        val imageAnalysis = ImageAnalysis.Builder()
+                            .setResolutionSelector(resolutionSelector)
+                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                            .build()
+                        imageAnalysis.setAnalyzer(analysisExecutor) { imageProxy ->
+                            cameraStreamEngine?.sendFrame(imageProxy) ?: imageProxy.close()
+                        }
+                        try {
+                            cameraProvider.unbindAll()
+                            cameraProvider.bindToLifecycle(
+                                lifecycleOwner,
+                                cameraSelector,
+                                preview,
+                                imageAnalysis
+                            )
+                        } catch (_: Exception) {}
+                    }, ContextCompat.getMainExecutor(previewView.context))
+                }
+
                 AndroidView(
                     factory = { ctx ->
-                        val previewView = PreviewView(ctx)
-                        val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
-                        val analysisExecutor = Executors.newSingleThreadExecutor()
-
-                        cameraProviderFuture.addListener({
-                            val cameraProvider = cameraProviderFuture.get()
-                            val preview = Preview.Builder().build().also {
-                                it.setSurfaceProvider(previewView.surfaceProvider)
-                            }
-
-                            val cameraSelector = CameraSelector.Builder()
-                                .requireLensFacing(lensFacing)
-                                .build()
-
-                            val imageAnalysis = ImageAnalysis.Builder()
-                                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                .build()
-
-                            imageAnalysis.setAnalyzer(analysisExecutor) { imageProxy ->
-                                cameraStreamEngine?.sendFrame(imageProxy) ?: imageProxy.close()
-                            }
-
-                            try {
-                                cameraProvider.unbindAll()
-                                cameraProvider.bindToLifecycle(
-                                    lifecycleOwner,
-                                    cameraSelector,
-                                    preview,
-                                    imageAnalysis
-                                )
-                            } catch (_: Exception) {}
-                        }, ContextCompat.getMainExecutor(ctx))
-
-                        previewView
+                        PreviewView(ctx).also { previewViewRef = it }
                     },
-                    modifier = Modifier.fillMaxSize(),
-                    update = { previewView ->
-                        val cameraProviderFuture = ProcessCameraProvider.getInstance(previewView.context)
-                        val analysisExecutor = Executors.newSingleThreadExecutor()
-                        cameraProviderFuture.addListener({
-                            val cameraProvider = cameraProviderFuture.get()
-                            val preview = Preview.Builder().build().also {
-                                it.setSurfaceProvider(previewView.surfaceProvider)
-                            }
-                            val cameraSelector = CameraSelector.Builder()
-                                .requireLensFacing(lensFacing)
-                                .build()
-                            val imageAnalysis = ImageAnalysis.Builder()
-                                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                                .build()
-                            imageAnalysis.setAnalyzer(analysisExecutor) { imageProxy ->
-                                cameraStreamEngine?.sendFrame(imageProxy) ?: imageProxy.close()
-                            }
-                            try {
-                                cameraProvider.unbindAll()
-                                cameraProvider.bindToLifecycle(
-                                    lifecycleOwner,
-                                    cameraSelector,
-                                    preview,
-                                    imageAnalysis
-                                )
-                            } catch (_: Exception) {}
-                        }, ContextCompat.getMainExecutor(previewView.context))
-                    }
+                    modifier = Modifier.fillMaxSize()
                 )
 
                 // Reticle Canvas overlay

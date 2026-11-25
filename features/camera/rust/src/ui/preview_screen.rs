@@ -1,5 +1,6 @@
 use crate::service::CameraService;
-use gpui::{div, prelude::*, px, rgba, svg, Context, FontWeight, Render, Window};
+use gpui::{div, img, prelude::*, px, rgba, svg, Context, FontWeight, ObjectFit, Render, RenderImage, Window};
+use smallvec::smallvec;
 use std::sync::Arc;
 use wirewave_core_config::{APP_CONFIG, THEME};
 use wirewave_core_session::{SessionState, SharedSession};
@@ -19,7 +20,7 @@ impl CameraPreviewScreen {
 }
 
 impl Render for CameraPreviewScreen {
-    fn render(&mut self, _window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
         let colors = THEME.colors;
         let metrics = THEME.metrics;
         let is_connected = matches!(self.session.snapshot().state, SessionState::Connected(_));
@@ -29,6 +30,10 @@ impl Render for CameraPreviewScreen {
             .detected_driver()
             .map(|d| d.name)
             .unwrap_or_else(|| "No virtual camera driver detected".into());
+
+        if is_connected && is_camera_active {
+            window.request_animation_frame();
+        }
 
         let status_badge = if !is_connected {
             ("Disconnected", colors.status_err_fg, colors.status_err_bg)
@@ -93,14 +98,26 @@ impl Render for CameraPreviewScreen {
                         .child("Navigate to the Camera screen on your phone to start streaming live video."),
                 )
         } else {
-            div()
-                .flex()
-                .flex_col()
-                .items_center()
-                .justify_center()
-                .gap(px(16.0))
-                .p(px(24.0))
-                .child(
+            let preview_box = if let Some(frame) = self.camera_service.latest_decoded_frame() {
+                if let Some(rgba_img) =
+                    image::RgbaImage::from_raw(frame.width, frame.height, frame.rgba)
+                {
+                    let render_image =
+                        Arc::new(RenderImage::new(smallvec![image::Frame::new(rgba_img)]));
+                    div()
+                        .w_full()
+                        .h(px(360.0))
+                        .rounded(px(metrics.radius_card))
+                        .bg(rgba(colors.bg_canvas))
+                        .border_1()
+                        .border_color(rgba(colors.border_subtle))
+                        .overflow_hidden()
+                        .child(
+                            img(render_image)
+                                .size_full()
+                                .object_fit(ObjectFit::Contain),
+                        )
+                } else {
                     div()
                         .w_full()
                         .h(px(360.0))
@@ -109,29 +126,58 @@ impl Render for CameraPreviewScreen {
                         .border_1()
                         .border_color(rgba(colors.border_subtle))
                         .flex()
-                        .flex_col()
                         .items_center()
                         .justify_center()
-                        .gap(px(12.0))
-                        .child(
-                            svg()
-                                .path(APP_CONFIG.assets.icon_camera_svg)
-                                .size(px(36.0))
-                                .text_color(rgba(colors.accent_blue)),
-                        )
-                        .child(
-                            div()
-                                .text_size(px(THEME.typography.font_body))
-                                .font_weight(FontWeight::MEDIUM)
-                                .text_color(rgba(colors.text_primary))
-                                .child("Streaming Live Video via WireWave UDP"),
-                        )
-                        .child(
-                            div()
-                                .text_size(px(THEME.typography.font_badge))
-                                .text_color(rgba(colors.text_secondary))
-                                .child(format!("Virtual Output Device: {}", driver_name)),
-                        ),
+                        .child("Decoding frame...")
+                }
+            } else {
+                div()
+                    .w_full()
+                    .h(px(360.0))
+                    .rounded(px(metrics.radius_card))
+                    .bg(rgba(colors.bg_canvas))
+                    .border_1()
+                    .border_color(rgba(colors.border_subtle))
+                    .flex()
+                    .flex_col()
+                    .items_center()
+                    .justify_center()
+                    .gap(px(12.0))
+                    .child(
+                        svg()
+                            .path(APP_CONFIG.assets.icon_camera_svg)
+                            .size(px(36.0))
+                            .text_color(rgba(colors.accent_blue)),
+                    )
+                    .child(
+                        div()
+                            .text_size(px(THEME.typography.font_body))
+                            .font_weight(FontWeight::MEDIUM)
+                            .text_color(rgba(colors.text_primary))
+                            .child("Waiting for Live Video via WireWave UDP..."),
+                    )
+                    .child(
+                        div()
+                            .text_size(px(THEME.typography.font_badge))
+                            .text_color(rgba(colors.text_secondary))
+                            .child(format!("Virtual Output Device: {}", driver_name)),
+                    )
+            };
+
+            div()
+                .flex()
+                .flex_col()
+                .items_center()
+                .justify_center()
+                .gap(px(12.0))
+                .p(px(24.0))
+                .w_full()
+                .child(preview_box)
+                .child(
+                    div()
+                        .text_size(px(THEME.typography.font_badge))
+                        .text_color(rgba(colors.text_secondary))
+                        .child(format!("Virtual Output Device: {}", driver_name)),
                 )
         };
 

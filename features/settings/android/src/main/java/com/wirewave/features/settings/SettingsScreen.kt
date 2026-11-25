@@ -56,6 +56,7 @@ fun SettingsScreen(
     onPointerSpeedChange: (Float) -> Unit = {},
     onScrollSpeedChange: (Float) -> Unit = {},
     onToggleNaturalScroll: (Boolean) -> Unit = {},
+    onToggleShowMouseButtons: (Boolean) -> Unit = {},
     onForgetDesktop: (String) -> Unit = {},
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -107,7 +108,8 @@ fun SettingsScreen(
             prefs = mousePrefs,
             onPointerSpeedChange = onPointerSpeedChange,
             onScrollSpeedChange = onScrollSpeedChange,
-            onToggleNaturalScroll = onToggleNaturalScroll
+            onToggleNaturalScroll = onToggleNaturalScroll,
+            onToggleShowMouseButtons = onToggleShowMouseButtons
         )
 
         Column(verticalArrangement = Arrangement.spacedBy(WireWaveTheme.Metrics.spacingSm)) {

@@ -301,6 +301,7 @@ private fun WireWaveRoot(
             onPointerSpeedChange = container.trustStore::setPointerSpeed,
             onScrollSpeedChange = container.trustStore::setScrollSpeed,
             onToggleNaturalScroll = container.trustStore::setNaturalScroll,
+            onToggleShowMouseButtons = container.trustStore::setShowMouseButtons,
             onForgetDesktop = { id ->
                 container.trustStore.forgetDesktop(id)
                 trustedList = container.trustStore.listTrustedDesktops()
@@ -397,6 +398,9 @@ private fun WireWaveRoot(
                     onBack = {
                         activeOverlay = ScreenOverlay.NONE
                         connectedScreen = "home"
+                    },
+                    onNavigateSettings = {
+                        showSettings = true
                     },
                     onCameraActiveChanged = container.sessionController::requestCameraActive,
                     cameraStreamEngine = container.cameraStreamEngine
