@@ -11,8 +11,7 @@ enum class ChannelId(val wireByte: Byte) {
     SPEAKER(1),
     MIC(2),
     MOUSE(3),
-    KEYBOARD(4),
-    CAMERA(5);
+    KEYBOARD(4);
 
     companion object {
         fun fromByte(raw: Byte): ChannelId? = entries.firstOrNull { it.wireByte == raw }

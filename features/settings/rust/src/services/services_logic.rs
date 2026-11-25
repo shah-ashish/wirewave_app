@@ -14,7 +14,6 @@ pub struct ServicesSettingsState {
     pub speaker_allowed: bool,
     pub mic_allowed: bool,
     pub mouse_allowed: bool,
-    pub camera_allowed: bool,
     pub items: Vec<ServicePermissionItem>,
 }
 
@@ -42,20 +41,12 @@ impl ServicesSettingsState {
                 enabled: prefs.mouse_service_allowed,
                 channel: ChannelId::Mouse,
             },
-            ServicePermissionItem {
-                id: "camera-permission-toggle",
-                title: "Camera",
-                subtitle: "Allow the connected phone to stream camera video to this PC",
-                enabled: prefs.camera_service_allowed,
-                channel: ChannelId::Camera,
-            },
         ];
 
         Self {
             speaker_allowed: prefs.speaker_service_allowed,
             mic_allowed: prefs.mic_service_allowed,
             mouse_allowed: prefs.mouse_service_allowed,
-            camera_allowed: prefs.camera_service_allowed,
             items,
         }
     }
@@ -72,11 +63,9 @@ mod tests {
         assert!(state.speaker_allowed);
         assert!(state.mic_allowed);
         assert!(state.mouse_allowed);
-        assert!(state.camera_allowed);
-        assert_eq!(state.items.len(), 4);
+        assert_eq!(state.items.len(), 3);
         assert!(state.items[0].enabled);
         assert!(state.items[1].enabled);
         assert!(state.items[2].enabled);
-        assert!(state.items[3].enabled);
     }
 }

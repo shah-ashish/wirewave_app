@@ -13,7 +13,7 @@ pub struct ServiceTileSpec {
 pub struct ConnectedViewState {
     pub device_name: String,
     pub transport: TransportKind,
-    pub services: [ServiceTileSpec; 5],
+    pub services: [ServiceTileSpec; 4],
 }
 
 impl ConnectedViewState {
@@ -41,11 +41,6 @@ impl ConnectedViewState {
                 ServiceTileSpec {
                     name: "Mouse",
                     icon_path: a.icon_mouse_svg,
-                    status_badge: "Coming soon",
-                },
-                ServiceTileSpec {
-                    name: "Camera",
-                    icon_path: a.icon_camera_svg,
                     status_badge: "Coming soon",
                 },
             ],

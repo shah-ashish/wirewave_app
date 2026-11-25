@@ -15,4 +15,3 @@ wirewave-core-session = { workspace = true }
 wirewave-core-transport = { workspace = true }
 wirewave-core-updater = { workspace = true }
 wirewave-feature-mic = { workspace = true }
-wirewave-feature-camera = { workspace = true }

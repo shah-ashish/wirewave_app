@@ -149,17 +149,6 @@ pub enum ControlMessage {
         stream_id: Option<u32>,
         udp_key_hex: Option<String>,
     },
-    CameraCommand {
-        active: bool,
-    },
-    CameraState {
-        allowed: bool,
-        active: bool,
-        detail: Option<String>,
-        udp_port: Option<u16>,
-        stream_id: Option<u32>,
-        udp_key_hex: Option<String>,
-    },
     KeyInput {
         #[serde(default)]
         text: Option<String>,
@@ -232,8 +221,10 @@ mod tests {
         assert!(
             !TransportPriority::WifiFirst.outranks(TransportKind::Bluetooth, TransportKind::WiFi)
         );
-        assert!(TransportPriority::BluetoothFirst
-            .outranks(TransportKind::Bluetooth, TransportKind::WiFi));
+        assert!(
+            TransportPriority::BluetoothFirst
+                .outranks(TransportKind::Bluetooth, TransportKind::WiFi)
+        );
     }
 
     #[test]
@@ -271,7 +262,10 @@ mod tests {
         let command = ControlMessage::MicCommand { active: true };
         let encoded = serde_json::to_vec(&command).expect("encode");
         let decoded: ControlMessage = serde_json::from_slice(&encoded).expect("decode");
-        assert!(matches!(decoded, ControlMessage::MicCommand { active: true }));
+        assert!(matches!(
+            decoded,
+            ControlMessage::MicCommand { active: true }
+        ));
 
         let state = ControlMessage::MicState {
             allowed: true,

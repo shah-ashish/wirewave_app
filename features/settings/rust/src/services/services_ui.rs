@@ -2,7 +2,7 @@ use crate::{
     components::{section_label, surface_card},
     services::services_logic::{ServicePermissionItem, ServicesSettingsState},
 };
-use gpui::{div, prelude::*, px, rgba, Context, Div, Render};
+use gpui::{Context, Div, Render, div, prelude::*, px, rgba};
 use wirewave_core_config::THEME;
 use wirewave_core_session::ChannelId;
 
@@ -10,13 +10,11 @@ pub trait HasServicesSettingsActions: 'static {
     fn toggle_speaker_permission(&mut self);
     fn toggle_mic_permission(&mut self);
     fn toggle_mouse_permission(&mut self);
-    fn toggle_camera_permission(&mut self);
     fn toggle_permission_for_channel(&mut self, channel: ChannelId) {
         match channel {
             ChannelId::Speaker => self.toggle_speaker_permission(),
             ChannelId::Mic => self.toggle_mic_permission(),
             ChannelId::Mouse => self.toggle_mouse_permission(),
-            ChannelId::Camera => self.toggle_camera_permission(),
             _ => {}
         }
     }
@@ -51,8 +49,16 @@ fn render_permission_row<V: Render + HasServicesSettingsActions>(
 ) -> Div {
     let c = THEME.colors;
     let m = THEME.metrics;
-    let track = if item.enabled { c.status_ok_fg } else { c.border_subtle };
-    let align = if item.enabled { div().justify_end() } else { div().justify_start() };
+    let track = if item.enabled {
+        c.status_ok_fg
+    } else {
+        c.border_subtle
+    };
+    let align = if item.enabled {
+        div().justify_end()
+    } else {
+        div().justify_start()
+    };
     let channel = item.channel;
 
     div()

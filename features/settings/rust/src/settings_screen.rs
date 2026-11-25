@@ -3,23 +3,23 @@ use crate::{
     compat_popup_ui::render_incompatibility_popup,
     connection::{
         connection_logic::ConnectionSettingsState,
-        connection_ui::{render_connection_section, HasConnectionSettingsActions},
+        connection_ui::{HasConnectionSettingsActions, render_connection_section},
     },
     devices::{
         devices_logic::DeviceTab,
-        devices_ui::{render_devices_section, HasDeviceListActions},
+        devices_ui::{HasDeviceListActions, render_devices_section},
     },
     drivers::{
         drivers_logic::DriversState,
-        drivers_ui::{render_drivers_section, HasDriverActions},
+        drivers_ui::{HasDriverActions, render_drivers_section},
     },
     services::{
         services_logic::ServicesSettingsState,
-        services_ui::{render_services_section, HasServicesSettingsActions},
+        services_ui::{HasServicesSettingsActions, render_services_section},
     },
-    update::{render_update_section, update_logic::HasUpdateController, UpdateController},
+    update::{UpdateController, render_update_section, update_logic::HasUpdateController},
 };
-use gpui::{div, prelude::*, px, rgba, Context, FontWeight, Render, Window};
+use gpui::{Context, FontWeight, Render, Window, div, prelude::*, px, rgba};
 use wirewave_core_compatibility::CompatibilityReport;
 use wirewave_core_config::THEME;
 use wirewave_core_identity::DeviceIdentity;
@@ -98,11 +98,6 @@ impl HasServicesSettingsActions for SettingsScreen {
         let current = self.session.snapshot().preferences.mouse_service_allowed;
         self.session.set_mouse_service_allowed(!current);
     }
-
-    fn toggle_camera_permission(&mut self) {
-        let current = self.session.snapshot().preferences.camera_service_allowed;
-        self.session.set_camera_service_allowed(!current);
-    }
 }
 
 impl HasDeviceListActions for SettingsScreen {
@@ -130,20 +125,10 @@ impl HasDeviceListActions for SettingsScreen {
 impl HasDriverActions for SettingsScreen {
     fn refresh_drivers(&mut self) {
         self.session.refresh_mic_service_state();
-        self.session.refresh_camera_service_state();
     }
 
     fn download_recommended_driver(&mut self) {
         let _ = wirewave_feature_mic::open_recommended_driver_page();
-    }
-
-    fn download_recommended_camera_driver(&mut self) {
-        let _ = wirewave_feature_camera::open_recommended_camera_driver_page();
-    }
-
-    fn select_camera_backend(&mut self, backend: wirewave_feature_camera::CameraBackendPreference) {
-        wirewave_feature_camera::set_preferred_camera_backend(backend);
-        self.session.refresh_camera_service_state();
     }
 }
 
@@ -176,8 +161,16 @@ impl Render for SettingsScreen {
                     .px(px(14.0))
                     .py(px(8.0))
                     .rounded(px(8.0))
-                    .bg(rgba(if general_active { colors.bg_nav_active } else { colors.bg_card }))
-                    .text_color(rgba(if general_active { colors.accent_blue } else { colors.text_secondary }))
+                    .bg(rgba(if general_active {
+                        colors.bg_nav_active
+                    } else {
+                        colors.bg_card
+                    }))
+                    .text_color(rgba(if general_active {
+                        colors.accent_blue
+                    } else {
+                        colors.text_secondary
+                    }))
                     .font_weight(FontWeight::MEDIUM)
                     .on_click(cx.listener(|view, _, _, cx| {
                         view.settings_tab = SettingsTab::General;
@@ -192,8 +185,16 @@ impl Render for SettingsScreen {
                     .px(px(14.0))
                     .py(px(8.0))
                     .rounded(px(8.0))
-                    .bg(rgba(if drivers_active { colors.bg_nav_active } else { colors.bg_card }))
-                    .text_color(rgba(if drivers_active { colors.accent_blue } else { colors.text_secondary }))
+                    .bg(rgba(if drivers_active {
+                        colors.bg_nav_active
+                    } else {
+                        colors.bg_card
+                    }))
+                    .text_color(rgba(if drivers_active {
+                        colors.accent_blue
+                    } else {
+                        colors.text_secondary
+                    }))
                     .font_weight(FontWeight::MEDIUM)
                     .on_click(cx.listener(|view, _, _, cx| {
                         view.settings_tab = SettingsTab::Drivers;

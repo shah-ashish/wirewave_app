@@ -31,7 +31,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.Keyboard
 import androidx.compose.material.icons.rounded.Mouse
-import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -83,10 +82,8 @@ fun ConnectedHomeScreen(
     speakerTile: @Composable () -> Unit = {},
     micTile: @Composable () -> Unit = {},
     onNavigateToMouse: () -> Unit = {},
-    onNavigateToCamera: () -> Unit = {},
     onSendKeyInput: (text: String?, keyCode: String?) -> Unit = { _, _ -> },
     activeOverlay: ScreenOverlay = ScreenOverlay.NONE,
-    onOverlayChange: (ScreenOverlay) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -102,8 +99,7 @@ fun ConnectedHomeScreen(
     }
 
     val rows = listOf(
-        UsePhoneRowSpec("Mouse", "Move the cursor, scroll, click", Icons.Rounded.Mouse, WireWaveTheme.Colors.accentBlue),
-        UsePhoneRowSpec("Camera", "Live stream, photos, recording", Icons.Rounded.PhotoCamera, WireWaveTheme.Colors.statusOkFg)
+        UsePhoneRowSpec("Mouse", "Move the cursor, scroll, click", Icons.Rounded.Mouse, WireWaveTheme.Colors.accentBlue)
     )
 
     Box(
@@ -320,7 +316,6 @@ fun ConnectedHomeScreen(
                                 .clickable(role = Role.Button) {
                                     when (row.title) {
                                         "Mouse" -> onNavigateToMouse()
-                                        "Camera" -> onNavigateToCamera()
                                         else -> Toast.makeText(context, "${row.title} will be available in Stage 3", Toast.LENGTH_SHORT).show()
                                     }
                                 }
@@ -358,7 +353,7 @@ fun ConnectedHomeScreen(
                                     )
                                 }
                             }
-                            if (row.title == "Mouse" || row.title == "Camera") {
+                            if (row.title == "Mouse") {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                                     contentDescription = "Open ${row.title}",

@@ -36,27 +36,22 @@ impl AssetSource for EmbeddedAssets {
             p if p == a.icon_speaker_svg => {
                 Some(include_bytes!("../../../assets/brand/icons/speaker.svg"))
             }
-            p if p == a.icon_mic_svg => {
-                Some(include_bytes!("../../../assets/brand/icons/mic.svg"))
-            }
+            p if p == a.icon_mic_svg => Some(include_bytes!("../../../assets/brand/icons/mic.svg")),
             p if p == a.icon_keyboard_svg => {
                 Some(include_bytes!("../../../assets/brand/icons/keyboard.svg"))
             }
             p if p == a.icon_mouse_svg => {
                 Some(include_bytes!("../../../assets/brand/icons/mouse.svg"))
             }
-            p if p == a.icon_camera_svg => {
-                Some(include_bytes!("../../../assets/brand/icons/camera.svg"))
-            }
-            "assets/brand/icons/window-minimize.svg" => {
-                Some(include_bytes!("../../../assets/brand/icons/window-minimize.svg"))
-            }
-            "assets/brand/icons/window-maximize.svg" => {
-                Some(include_bytes!("../../../assets/brand/icons/window-maximize.svg"))
-            }
-            "assets/brand/icons/window-close.svg" => {
-                Some(include_bytes!("../../../assets/brand/icons/window-close.svg"))
-            }
+            "assets/brand/icons/window-minimize.svg" => Some(include_bytes!(
+                "../../../assets/brand/icons/window-minimize.svg"
+            )),
+            "assets/brand/icons/window-maximize.svg" => Some(include_bytes!(
+                "../../../assets/brand/icons/window-maximize.svg"
+            )),
+            "assets/brand/icons/window-close.svg" => Some(include_bytes!(
+                "../../../assets/brand/icons/window-close.svg"
+            )),
             _ => None,
         };
         Ok(bytes.map(Cow::Borrowed))
@@ -77,7 +72,6 @@ impl AssetSource for EmbeddedAssets {
             a.icon_mic_svg.into(),
             a.icon_keyboard_svg.into(),
             a.icon_mouse_svg.into(),
-            a.icon_camera_svg.into(),
             "assets/brand/icons/window-minimize.svg".into(),
             "assets/brand/icons/window-maximize.svg".into(),
             "assets/brand/icons/window-close.svg".into(),

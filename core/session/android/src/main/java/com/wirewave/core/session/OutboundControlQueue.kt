@@ -23,7 +23,6 @@ internal sealed interface OutboundControlCommand {
                     ChannelId.MIC -> "mic_command"
                     ChannelId.MOUSE -> "mouse_command"
                     ChannelId.KEYBOARD -> "keyboard_command"
-                    ChannelId.CAMERA -> "camera_command"
                 }
                 JSONObject().apply {
                     put("type", typeName)

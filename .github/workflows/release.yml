@@ -99,24 +99,21 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build Release Binary
-        run: cargo build --release -p wirewave-vcam -p wirewave-desktop
+        run: cargo build --release -p wirewave-desktop
 
       - name: Set up NSIS
         uses: nsis-dev/setup-nsis@v1
 
       # CARGO_TARGET_DIR is C:\t, but wirewave.nsi reads the exe and dll from
       # <repo>\target\release (..\..\..\target\release relative to the .nsi).
-      # Copy the built binaries there so the installer script can find them.
+      # Copy the built binary there so the installer script can find it.
       - name: Stage Release Binary for Installer
         shell: pwsh
         run: |
           $srcExe = Join-Path $env:CARGO_TARGET_DIR "release\wirewave-desktop.exe"
-          $srcDll = Join-Path $env:CARGO_TARGET_DIR "release\wirewave_vcam.dll"
           if (-not (Test-Path $srcExe)) { throw "Release binary not found at $srcExe" }
-          if (-not (Test-Path $srcDll)) { throw "Virtual camera DLL not found at $srcDll" }
           New-Item -ItemType Directory -Force -Path "target\release" | Out-Null
           Copy-Item $srcExe "target\release\wirewave-desktop.exe" -Force
-          Copy-Item $srcDll "target\release\wirewave_vcam.dll" -Force
 
       - name: Package NSIS Installer
         shell: pwsh

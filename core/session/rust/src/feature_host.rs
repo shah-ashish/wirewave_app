@@ -1,15 +1,15 @@
+use crate::settings_store::ConnectionPreferences;
 use std::sync::Arc;
 use tokio::runtime::Handle;
 use wirewave_core_stream::{ChannelId, UdpDataChannel};
 use wirewave_core_transport::ControlMessage;
-use crate::settings_store::ConnectionPreferences;
 
 /// Common interface for any real-time feature streaming over the encrypted UDP data plane.
 ///
-/// Follows the Open/Closed Principle: new features (Mouse, Keyboard, Camera) can be added
+/// Follows the Open/Closed Principle: new features can be added
 /// without modifying core session code by implementing this trait and registering with `FeatureRegistry`.
 pub trait FeatureHost: Send + Sync {
-    /// Associated stream channel identifier (Speaker, Mic, Mouse, Keyboard, Camera).
+    /// Associated stream channel identifier.
     fn channel_id(&self) -> ChannelId;
 
     /// Human-readable display label.

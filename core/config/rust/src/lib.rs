@@ -37,7 +37,6 @@ pub struct AssetPaths {
     pub icon_mic_svg: &'static str,
     pub icon_keyboard_svg: &'static str,
     pub icon_mouse_svg: &'static str,
-    pub icon_camera_svg: &'static str,
 }
 
 #[derive(Debug, Clone, Copy)]

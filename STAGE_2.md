@@ -20,7 +20,7 @@ Stage 2 introduces **secure, WireWave-exclusive device discovery, OTP pairing, p
    - **Android**: `WireWaveConnectionService` (`foregroundServiceType="connectedDevice"`) holds `WifiLock` + partial `WakeLock` while connected so app switches and screen-off do not drop the link. Controlled by Settings toggles (`Auto-connect`, `Keep alive in background`).
    - **Desktop**: Dedicated background Tokio runtime decoupled from GPUI UI + `Keep alive in background` setting.
 5. **Active Services (UI-Only Placeholders)**:
-   - Both Android and Desktop Connected Home screens render `Speaker`, `Mic`, `Keyboard`, `Mouse`, and `Camera` with a **`Coming soon`** badge until Stage 3.
+   - Both Android and Desktop Connected Home screens render `Speaker`, `Mic`, `Keyboard`, and `Mouse` with a **`Coming soon`** badge until Stage 3.
 
 ---
 

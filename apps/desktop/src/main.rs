@@ -5,27 +5,25 @@ mod shell;
 
 use assets::EmbeddedAssets;
 use gpui::{
-    px, size, App, AppContext, Application, Bounds, TitlebarOptions, WindowBounds,
-    WindowDecorations, WindowOptions,
+    App, AppContext, Application, Bounds, TitlebarOptions, WindowBounds, WindowDecorations,
+    WindowOptions, px, size,
 };
 use shell::AppShell;
 use wirewave_core_compatibility::CompatibilityChecker;
 use wirewave_core_config::APP_CONFIG;
-use wirewave_core_crypto::{fetch_or_create_keypair, IdentityKeypair};
+use wirewave_core_crypto::{IdentityKeypair, fetch_or_create_keypair};
 use wirewave_core_identity::{DeviceIdentity, DeviceIdentityStore};
 use wirewave_core_session::{FeatureRegistry, SessionManager};
 use wirewave_feature_connection::{ActiveServiceSlots, HomeScreen};
+use wirewave_feature_mic::{MicService, MicTileState, render_mic_tile};
 use wirewave_feature_settings::SettingsScreen;
-use wirewave_feature_speaker::{render_speaker_tile, SpeakerService, SpeakerTileState};
-use wirewave_feature_mic::{render_mic_tile, MicService, MicTileState};
-use wirewave_feature_camera::{render_camera_tile, CameraPreviewScreen, CameraService, CameraTileState};
+use wirewave_feature_speaker::{SpeakerService, SpeakerTileState, render_speaker_tile};
 
 /// Injected implementation of active service slots for Desktop Home, composed at the application root.
 struct DesktopServiceSlots {
     speaker: std::sync::Arc<SpeakerService>,
     mic: std::sync::Arc<MicService>,
     mouse: std::sync::Arc<wirewave_feature_mouse::MouseService>,
-    camera: std::sync::Arc<CameraService>,
 }
 
 impl ActiveServiceSlots for DesktopServiceSlots {
@@ -48,21 +46,14 @@ impl ActiveServiceSlots for DesktopServiceSlots {
         wirewave_feature_mouse::render_mouse_tile(&state).into_any_element()
     }
 
-    fn render_camera_tile(&self) -> gpui::AnyElement {
-        use gpui::IntoElement;
-        let state = CameraTileState::from_status(&self.camera.status());
-        render_camera_tile(&state).into_any_element()
-    }
-
     fn stop_all(&self) {
         self.speaker.stop();
         self.mic.stop();
         self.mouse.stop();
-        self.camera.stop();
     }
 
     fn is_any_running(&self) -> bool {
-        self.speaker.is_running() || self.mic.is_running() || self.mouse.is_running() || self.camera.is_running()
+        self.speaker.is_running() || self.mic.is_running() || self.mouse.is_running()
     }
 }
 
@@ -81,9 +72,9 @@ enum SingleInstance {
 /// Returns `SingleInstance::AlreadyRunning` if another instance is already running — the caller must exit.
 #[cfg(windows)]
 fn acquire_single_instance() -> SingleInstance {
-    use windows::core::PCWSTR;
     use windows::Win32::Foundation::ERROR_ALREADY_EXISTS;
     use windows::Win32::System::Threading::CreateMutexW;
+    use windows::core::PCWSTR;
 
     let name: Vec<u16> = "Local\\WireWaveDesktopSingleInstance\0"
         .encode_utf16()
@@ -172,20 +163,14 @@ fn main() {
     let speaker_service = std::sync::Arc::new(SpeakerService::new());
     let mic_service = std::sync::Arc::new(MicService::new());
     let mouse_service = std::sync::Arc::new(wirewave_feature_mouse::MouseService::new());
-    let camera_service = std::sync::Arc::new(CameraService::new());
 
     // Polymorphic feature registry:
     let feature_registry = std::sync::Arc::new(FeatureRegistry::new());
     feature_registry.register(speaker_service.clone());
     feature_registry.register(mic_service.clone());
     feature_registry.register(mouse_service.clone());
-    feature_registry.register(camera_service.clone());
 
-    let session = SessionManager::new(
-        identity.clone(),
-        keypair,
-        feature_registry,
-    );
+    let session = SessionManager::new(identity.clone(), keypair, feature_registry);
     if compatibility.is_supported() {
         session.start_background_services();
     }
@@ -209,27 +194,17 @@ fn main() {
             let compat = compatibility.clone();
             let id = identity.clone();
             let shared_session = session.clone();
-            let cam_service = camera_service.clone();
             let slots = std::sync::Arc::new(DesktopServiceSlots {
                 speaker: speaker_service.clone(),
                 mic: mic_service.clone(),
                 mouse: mouse_service.clone(),
-                camera: camera_service.clone(),
             });
 
             cx.open_window(options, move |_window, cx| {
-                let home = cx.new(|cx| HomeScreen::new(
-                    shared_session.clone(),
-                    slots,
-                    cx,
-                ));
-                let camera = cx.new(|_| CameraPreviewScreen::new(
-                    shared_session.clone(),
-                    cam_service.clone(),
-                ));
+                let home = cx.new(|cx| HomeScreen::new(shared_session.clone(), slots, cx));
                 let settings =
                     cx.new(|_| SettingsScreen::new(&id, compat.clone(), shared_session.clone()));
-                cx.new(|_| AppShell::new(shared_session.clone(), home, camera, settings))
+                cx.new(|_| AppShell::new(shared_session.clone(), home, settings))
             })
             .expect("open main WireWave window");
 

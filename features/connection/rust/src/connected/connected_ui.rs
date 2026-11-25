@@ -2,7 +2,7 @@ use crate::{
     connected::connected_logic::{ConnectedViewState, ServiceTileSpec},
     service_slots::ActiveServiceSlots,
 };
-use gpui::{div, prelude::*, px, rgba, svg, Context, Div, FontWeight, Render};
+use gpui::{Context, Div, FontWeight, Render, div, prelude::*, px, rgba, svg};
 use wirewave_core_config::{APP_CONFIG, THEME};
 use wirewave_core_transport::TransportKind;
 
@@ -157,8 +157,7 @@ pub fn render_connected_view<V: Render + CanDisconnect>(
         .flex_row()
         .gap(px(12.0))
         .w_full()
-        .child(slots.render_mouse_tile())
-        .child(slots.render_camera_tile());
+        .child(slots.render_mouse_tile());
 
     let services_grid = div()
         .flex()

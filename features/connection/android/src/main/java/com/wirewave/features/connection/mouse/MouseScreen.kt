@@ -38,7 +38,6 @@ import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.KeyboardArrowUp
 import androidx.compose.material.icons.rounded.Mic
 import androidx.compose.material.icons.rounded.MicOff
-import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Icon
@@ -86,7 +85,6 @@ fun MouseScreen(
     overlayMode: ScreenOverlay,
     onOverlayChange: (ScreenOverlay) -> Unit,
     onNavigateHome: () -> Unit,
-    onNavigateCamera: () -> Unit,
     onNavigateSettings: () -> Unit = {},
     onSendKeyInput: (text: String?, keyCode: String?) -> Unit = { _, _ -> },
     mouseEngine: MouseEngine? = null,
@@ -304,7 +302,6 @@ fun MouseScreen(
                         else ScreenOverlay.CONTROLS
                     )
                 },
-                onCameraClick = onNavigateCamera,
                 onKeyboardToggle = {
                     if (isKeyboardVisible) {
                         keyboardController?.hide()
@@ -615,14 +612,13 @@ private fun MouseHardwareIcon(
     }
 }
 
-/** Floating bottom navigation dock containing Home, Controls, Camera, and Keyboard. */
+/** Floating bottom navigation dock containing Home, Controls, and Keyboard. */
 @Composable
 private fun BottomDock(
     overlayMode: ScreenOverlay,
     isKeyboardActive: Boolean,
     onHomeClick: () -> Unit,
     onControlsToggle: () -> Unit,
-    onCameraClick: () -> Unit,
     onKeyboardToggle: () -> Unit
 ) {
     val dockShape = RoundedCornerShape(26.dp)
@@ -654,15 +650,7 @@ private fun BottomDock(
             onClick = onControlsToggle
         )
 
-        // 3. Camera
-        DockIconButton(
-            icon = Icons.Rounded.PhotoCamera,
-            contentDescription = "Camera",
-            isActive = false,
-            onClick = onCameraClick
-        )
-
-        // 4. Keyboard
+        // 3. Keyboard
         DockIconButton(
             icon = Icons.Rounded.Keyboard,
             contentDescription = "Keyboard",

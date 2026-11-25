@@ -14,7 +14,6 @@
     "icon_mic_svg": "assets/brand/icons/mic.svg",
     "icon_keyboard_svg": "assets/brand/icons/keyboard.svg",
     "icon_mouse_svg": "assets/brand/icons/mouse.svg",
-    "icon_camera_svg": "assets/brand/icons/camera.svg",
     "icon_android_drawable": "assets/brand/wirewave_mark.png"
   },
   "connection": {

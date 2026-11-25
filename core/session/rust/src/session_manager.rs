@@ -2,7 +2,7 @@ use crate::{
     active_channel::ActiveControlChannel,
     feature_host::FeatureHost,
     feature_registry::{FeatureRegistry, SharedFeatureRegistry},
-    handshake::{decode_x25519, send_control, HandshakeCoordinator},
+    handshake::{HandshakeCoordinator, decode_x25519, send_control},
     settings_store::{ConnectionPreferences, PreferencesStore},
     trust_store::{TrustStore, TrustedDevice},
 };
@@ -21,7 +21,7 @@ use wirewave_core_discovery::run_udp_discovery_responder;
 use wirewave_core_identity::DeviceIdentity;
 use wirewave_core_stream::{ChannelId, UdpDataChannel};
 use wirewave_core_transport::{
-    read_frame, ControlMessage, RejectCode, TransportKind, TransportPriority,
+    ControlMessage, RejectCode, TransportKind, TransportPriority, read_frame,
 };
 
 #[derive(Debug, Clone)]
@@ -96,7 +96,6 @@ struct SessionInner {
     speaker_policy_tx: watch::Sender<bool>,
     mic_policy_tx: watch::Sender<bool>,
     mouse_policy_tx: watch::Sender<bool>,
-    camera_policy_tx: watch::Sender<bool>,
 }
 
 #[derive(Debug, Clone)]
@@ -128,11 +127,21 @@ pub trait MicStreamHost: Send + Sync {
 /// Adapter converting legacy SpeakerStreamHost into polymorphic FeatureHost.
 struct SpeakerHostAdapter(Arc<dyn SpeakerStreamHost>);
 impl FeatureHost for SpeakerHostAdapter {
-    fn channel_id(&self) -> ChannelId { ChannelId::Speaker }
-    fn display_name(&self) -> &'static str { "Speaker" }
-    fn is_allowed(&self, prefs: &ConnectionPreferences) -> bool { prefs.speaker_service_allowed }
-    fn status_detail(&self) -> Option<String> { self.0.status_detail() }
-    fn requires_peer_hello(&self) -> bool { true }
+    fn channel_id(&self) -> ChannelId {
+        ChannelId::Speaker
+    }
+    fn display_name(&self) -> &'static str {
+        "Speaker"
+    }
+    fn is_allowed(&self, prefs: &ConnectionPreferences) -> bool {
+        prefs.speaker_service_allowed
+    }
+    fn status_detail(&self) -> Option<String> {
+        self.0.status_detail()
+    }
+    fn requires_peer_hello(&self) -> bool {
+        true
+    }
     fn start_stream(
         &self,
         channel: Arc<UdpDataChannel>,
@@ -141,7 +150,9 @@ impl FeatureHost for SpeakerHostAdapter {
         self.0.start_stream(channel, runtime);
         Ok(self.status_detail())
     }
-    fn stop_stream(&self) { self.0.stop_stream(); }
+    fn stop_stream(&self) {
+        self.0.stop_stream();
+    }
     fn make_state_message(
         &self,
         allowed: bool,
@@ -151,19 +162,32 @@ impl FeatureHost for SpeakerHostAdapter {
         stream_id: Option<u32>,
         udp_key_hex: Option<String>,
     ) -> ControlMessage {
-        ControlMessage::SpeakerState { allowed, active, detail, udp_port, stream_id, udp_key_hex }
+        ControlMessage::SpeakerState {
+            allowed,
+            active,
+            detail,
+            udp_port,
+            stream_id,
+            udp_key_hex,
+        }
     }
 }
 
 /// Adapter converting legacy MicStreamHost into polymorphic FeatureHost.
 struct MicHostAdapter(Arc<dyn MicStreamHost>);
 impl FeatureHost for MicHostAdapter {
-    fn channel_id(&self) -> ChannelId { ChannelId::Mic }
-    fn display_name(&self) -> &'static str { "Microphone" }
+    fn channel_id(&self) -> ChannelId {
+        ChannelId::Mic
+    }
+    fn display_name(&self) -> &'static str {
+        "Microphone"
+    }
     fn is_allowed(&self, prefs: &ConnectionPreferences) -> bool {
         prefs.mic_service_allowed && self.0.available_driver().is_some()
     }
-    fn status_detail(&self) -> Option<String> { self.0.available_driver() }
+    fn status_detail(&self) -> Option<String> {
+        self.0.available_driver()
+    }
     fn start_stream(
         &self,
         channel: Arc<UdpDataChannel>,
@@ -171,7 +195,9 @@ impl FeatureHost for MicHostAdapter {
     ) -> Result<Option<String>, String> {
         self.0.start_stream(channel, runtime).map(Some)
     }
-    fn stop_stream(&self) { self.0.stop_stream(); }
+    fn stop_stream(&self) {
+        self.0.stop_stream();
+    }
     fn make_state_message(
         &self,
         allowed: bool,
@@ -181,7 +207,14 @@ impl FeatureHost for MicHostAdapter {
         stream_id: Option<u32>,
         udp_key_hex: Option<String>,
     ) -> ControlMessage {
-        ControlMessage::MicState { allowed, active, detail, udp_port, stream_id, udp_key_hex }
+        ControlMessage::MicState {
+            allowed,
+            active,
+            detail,
+            udp_port,
+            stream_id,
+            udp_key_hex,
+        }
     }
 }
 
@@ -214,7 +247,6 @@ impl SessionManager {
         let (speaker_policy_tx, _) = watch::channel(prefs.get().speaker_service_allowed);
         let (mic_policy_tx, _) = watch::channel(prefs.get().mic_service_allowed);
         let (mouse_policy_tx, _) = watch::channel(prefs.get().mouse_service_allowed);
-        let (camera_policy_tx, _) = watch::channel(prefs.get().camera_service_allowed);
 
         let keypair = Arc::new(keypair);
         let handshake = HandshakeCoordinator::new(
@@ -240,7 +272,6 @@ impl SessionManager {
                 speaker_policy_tx,
                 mic_policy_tx,
                 mouse_policy_tx,
-                camera_policy_tx,
             }),
             feature_registry,
             handshake,
@@ -322,27 +353,10 @@ impl SessionManager {
         }
     }
 
-    pub fn set_camera_service_allowed(&self, allowed: bool) {
-        let mut guard = self.inner.write().expect("session lock poisoned");
-        guard.prefs.set_camera_service_allowed(allowed);
-        let _ = guard.camera_policy_tx.send(allowed);
-        if !allowed {
-            if let Some(camera) = self.feature_registry.get(ChannelId::Camera) {
-                camera.stop_stream();
-            }
-        }
-    }
-
     pub fn refresh_mic_service_state(&self) {
         let guard = self.inner.read().expect("session lock poisoned");
         let allowed = guard.prefs.get().mic_service_allowed;
         guard.mic_policy_tx.send_replace(allowed);
-    }
-
-    pub fn refresh_camera_service_state(&self) {
-        let guard = self.inner.read().expect("session lock poisoned");
-        let allowed = guard.prefs.get().camera_service_allowed;
-        guard.camera_policy_tx.send_replace(allowed);
     }
 
     pub fn disconnect_active(&self) {
@@ -499,7 +513,8 @@ impl SessionManager {
             };
             let mgr = Arc::clone(&self);
             tokio::spawn(async move {
-                mgr.handle_incoming_stream(stream, TransportKind::WiFi).await;
+                mgr.handle_incoming_stream(stream, TransportKind::WiFi)
+                    .await;
             });
         }
     }
@@ -564,7 +579,13 @@ impl SessionManager {
                     .await;
                 if let Ok((stream, session_key)) = handshake_res {
                     Arc::clone(&self)
-                        .enter_connected_loop(stream, device_id.clone(), device_name, transport, session_key)
+                        .enter_connected_loop(
+                            stream,
+                            device_id.clone(),
+                            device_name,
+                            transport,
+                            session_key,
+                        )
                         .await;
                 }
             }
@@ -584,13 +605,19 @@ impl SessionManager {
                         &ephemeral_x25519_hex,
                         transport,
                         move |pending, cancel_tx| {
-                            let mut guard = session_for_set.inner.write().expect("session lock poisoned");
+                            let mut guard = session_for_set
+                                .inner
+                                .write()
+                                .expect("session lock poisoned");
                             guard.handshake_reservation = None;
                             guard.pairing_cancel_tx = Some(cancel_tx);
                             guard.state = SessionState::Pairing(pending);
                         },
                         move |dev_id, dev_name, pubkey| {
-                            let mut guard = session_for_trust.inner.write().expect("session lock poisoned");
+                            let mut guard = session_for_trust
+                                .inner
+                                .write()
+                                .expect("session lock poisoned");
                             guard.trust.upsert_trusted(dev_id, dev_name, pubkey);
                             guard.pairing_cancel_tx = None;
                         },
@@ -602,7 +629,13 @@ impl SessionManager {
 
                 if let Ok((stream, session_key)) = handshake_res {
                     Arc::clone(&self)
-                        .enter_connected_loop(stream, device_id.clone(), device_name, transport, session_key)
+                        .enter_connected_loop(
+                            stream,
+                            device_id.clone(),
+                            device_name,
+                            transport,
+                            session_key,
+                        )
                         .await;
                 }
             }
@@ -678,7 +711,7 @@ impl SessionManager {
         session_key: [u8; 32],
     ) {
         let (cancel_tx, cancel_rx) = watch::channel(false);
-        let (speaker_policy_rx, mic_policy_rx, mouse_policy_rx, camera_policy_rx) = {
+        let (speaker_policy_rx, mic_policy_rx, mouse_policy_rx) = {
             let mut guard = self.inner.write().expect("session lock poisoned");
             guard.handshake_reservation = None;
             guard.active_cancel_tx = Some(cancel_tx);
@@ -691,7 +724,6 @@ impl SessionManager {
                 guard.speaker_policy_tx.subscribe(),
                 guard.mic_policy_tx.subscribe(),
                 guard.mouse_policy_tx.subscribe(),
-                guard.camera_policy_tx.subscribe(),
             )
         };
 
@@ -703,7 +735,6 @@ impl SessionManager {
                 speaker_policy_rx,
                 mic_policy_rx,
                 mouse_policy_rx,
-                camera_policy_rx,
             )
             .await;
 

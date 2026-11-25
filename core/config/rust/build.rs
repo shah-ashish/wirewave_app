@@ -37,7 +37,6 @@ struct AssetsConfig {
     icon_mic_svg: String,
     icon_keyboard_svg: String,
     icon_mouse_svg: String,
-    icon_camera_svg: String,
 }
 
 #[derive(Deserialize)]
@@ -149,18 +148,15 @@ fn main() {
     }
     println!("cargo:rerun-if-env-changed=WIREWAVE_BUILD_CHANNEL");
 
-    let version: VersionFile = serde_json::from_str(
-        &fs::read_to_string(&version_path).expect("read version.json"),
-    )
-    .expect("parse version.json");
-    let config: GlobalConfigFile = serde_json::from_str(
-        &fs::read_to_string(&config_path).expect("read wirewave.config.json"),
-    )
-    .expect("parse wirewave.config.json");
-    let theme: ThemeFile = serde_json::from_str(
-        &fs::read_to_string(&theme_path).expect("read theme.json"),
-    )
-    .expect("parse theme.json");
+    let version: VersionFile =
+        serde_json::from_str(&fs::read_to_string(&version_path).expect("read version.json"))
+            .expect("parse version.json");
+    let config: GlobalConfigFile =
+        serde_json::from_str(&fs::read_to_string(&config_path).expect("read wirewave.config.json"))
+            .expect("parse wirewave.config.json");
+    let theme: ThemeFile =
+        serde_json::from_str(&fs::read_to_string(&theme_path).expect("read theme.json"))
+            .expect("parse theme.json");
 
     assert_ne!(
         config.desktop.app_id, version.update_app_ids.desktop,
@@ -221,7 +217,6 @@ pub const APP_CONFIG: AppConfig = AppConfig {{
         icon_mic_svg: {icon_mic:?},
         icon_keyboard_svg: {icon_keyboard:?},
         icon_mouse_svg: {icon_mouse:?},
-        icon_camera_svg: {icon_camera:?},
     }},
 }};
 
@@ -300,7 +295,6 @@ pub const THEME: ThemeTokens = ThemeTokens {{
         icon_mic = a.icon_mic_svg,
         icon_keyboard = a.icon_keyboard_svg,
         icon_mouse = a.icon_mouse_svg,
-        icon_camera = a.icon_camera_svg,
         bg_canvas = parse_hex_rgba(&c.bg_canvas),
         bg_sidebar = parse_hex_rgba(&c.bg_sidebar),
         bg_card = parse_hex_rgba(&c.bg_card),

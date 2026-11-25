@@ -28,7 +28,6 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.wirewave.android.service.WireWaveConnectionService
 import com.wirewave.core.session.ClientSessionState
-import com.wirewave.features.connection.camera.CameraScreen
 import com.wirewave.features.connection.connected.ConnectedHomeScreen
 import com.wirewave.features.connection.discovery.DiscoveryScreen
 import com.wirewave.features.connection.mouse.MouseScreen
@@ -101,7 +100,6 @@ class MainActivity : ComponentActivity() {
             container.speakerEngine.stop()
             container.micCaptureEngine.stop()
             container.mouseEngine.stop()
-            container.cameraStreamEngine.stop()
             if (container.sessionController.state.value is ClientSessionState.Connected) {
                 container.sessionController.disconnectForBackground()
             }
@@ -138,7 +136,6 @@ private fun WireWaveRoot(
     val micCaptureState by container.micCaptureEngine.state.collectAsState()
     val micRemoteState by container.sessionController.micState.collectAsState()
     val mouseRemoteState by container.sessionController.mouseState.collectAsState()
-    val cameraRemoteState by container.sessionController.cameraState.collectAsState()
     val micPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
@@ -215,26 +212,6 @@ private fun WireWaveRoot(
             container.mouseEngine.start(host, port, key, streamId)
         } else {
             container.mouseEngine.stop()
-        }
-    }
-
-    LaunchedEffect(
-        cameraRemoteState.active,
-        cameraRemoteState.hostAddress,
-        cameraRemoteState.udpPort,
-        cameraRemoteState.streamId,
-        cameraRemoteState.udpKey
-    ) {
-        val host = cameraRemoteState.hostAddress
-        val port = cameraRemoteState.udpPort
-        val streamId = cameraRemoteState.streamId
-        val key = cameraRemoteState.udpKey
-        if (cameraRemoteState.allowed && cameraRemoteState.active &&
-            host != null && port != null && streamId != null && key != null
-        ) {
-            container.cameraStreamEngine.start(host, port, key, streamId)
-        } else {
-            container.cameraStreamEngine.stop()
         }
     }
 
@@ -365,10 +342,6 @@ private fun WireWaveRoot(
                         activeOverlay = ScreenOverlay.NONE
                         connectedScreen = "home"
                     },
-                    onNavigateCamera = {
-                        activeOverlay = ScreenOverlay.NONE
-                        connectedScreen = "camera"
-                    },
                     onNavigateSettings = {
                         showSettings = true
                     },
@@ -376,42 +349,12 @@ private fun WireWaveRoot(
                     mouseEngine = container.mouseEngine,
                     mousePrefs = mousePrefs
                 )
-                "camera" -> CameraScreen(
-                    speakerActive = speakerRemoteState.allowed && speakerRemoteState.active,
-                    micActive = micRemoteState.allowed && micRemoteState.active,
-                    onToggleSpeaker = {
-                        container.sessionController.requestSpeakerActive(!speakerRemoteState.active)
-                    },
-                    onToggleMic = {
-                        if (micRemoteState.active) {
-                            container.sessionController.requestMicActive(false)
-                        } else if (ContextCompat.checkSelfPermission(
-                                context,
-                                Manifest.permission.RECORD_AUDIO
-                            ) == PackageManager.PERMISSION_GRANTED
-                        ) {
-                            container.sessionController.requestMicActive(true)
-                        } else {
-                            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                        }
-                    },
-                    onBack = {
-                        activeOverlay = ScreenOverlay.NONE
-                        connectedScreen = "home"
-                    },
-                    onNavigateSettings = {
-                        showSettings = true
-                    },
-                    onCameraActiveChanged = container.sessionController::requestCameraActive,
-                    cameraStreamEngine = container.cameraStreamEngine
-                )
                 else -> ConnectedHomeScreen(
                     pcName = state.pcName,
                     transport = state.transport,
                     onDisconnect = {
                         container.speakerEngine.stop()
                         container.micCaptureEngine.stop()
-                        container.cameraStreamEngine.stop()
                         container.sessionController.disconnectExplicitly()
                     },
                     onOpenSettings = { showSettings = true },
@@ -420,13 +363,8 @@ private fun WireWaveRoot(
                         activeOverlay = ScreenOverlay.NONE
                         connectedScreen = "mouse"
                     },
-                    onNavigateToCamera = {
-                        activeOverlay = ScreenOverlay.NONE
-                        connectedScreen = "camera"
-                    },
                     onSendKeyInput = container.sessionController::sendKeyInput,
                     activeOverlay = activeOverlay,
-                    onOverlayChange = { activeOverlay = it },
                     speakerTile = {
                         SpeakerCircleTile(
                             isOn = speakerState.isOn,

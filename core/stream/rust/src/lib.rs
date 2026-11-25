@@ -1,8 +1,8 @@
 pub mod udp_channel;
 pub mod udp_cipher;
 
-pub use udp_channel::{UdpDataChannel, UdpEndpointHandle, UDP_HELLO_PAYLOAD};
-pub use udp_cipher::{derive_udp_key, ReplayWindow, UdpCipher, UDP_MAGIC};
+pub use udp_channel::{UDP_HELLO_PAYLOAD, UdpDataChannel, UdpEndpointHandle};
+pub use udp_cipher::{ReplayWindow, UDP_MAGIC, UdpCipher, derive_udp_key};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -15,7 +15,6 @@ pub enum ChannelId {
     Mic = 2,
     Mouse = 3,
     Keyboard = 4,
-    Camera = 5,
 }
 
 impl ChannelId {
@@ -25,7 +24,6 @@ impl ChannelId {
             2 => Some(Self::Mic),
             3 => Some(Self::Mouse),
             4 => Some(Self::Keyboard),
-            5 => Some(Self::Camera),
             _ => None,
         }
     }
