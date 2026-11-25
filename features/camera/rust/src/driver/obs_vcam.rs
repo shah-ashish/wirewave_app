@@ -87,7 +87,7 @@ mod inner {
             let q_hdr = QueueHeader {
                 write_idx: 0,
                 read_idx: 0,
-                state: 1, // OutputReady
+                state: 2, // SHARED_QUEUE_STATE_READY
                 offsets: [
                     slot_offsets[0] as u32,
                     slot_offsets[1] as u32,
@@ -142,7 +142,7 @@ mod inner {
                     expected,
                 );
                 let q_ptr = self.view.Value as *mut QueueHeader;
-                std::ptr::write_volatile(&raw mut (*q_ptr).write_idx, slot as u32);
+                std::ptr::write_volatile(&raw mut (*q_ptr).write_idx, idx as u32);
             }
         }
     }
@@ -151,7 +151,7 @@ mod inner {
         fn drop(&mut self) {
             unsafe {
                 let q_ptr = self.view.Value as *mut QueueHeader;
-                std::ptr::write_volatile(&raw mut (*q_ptr).state, 2); // OutputStop
+                std::ptr::write_volatile(&raw mut (*q_ptr).state, 3); // SHARED_QUEUE_STATE_STOPPING
                 let _ = UnmapViewOfFile(self.view);
                 let _ = CloseHandle(self.mapping);
             }

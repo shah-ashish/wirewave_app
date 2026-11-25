@@ -13,6 +13,9 @@
 !ifndef BIN_PATH
   !define BIN_PATH "..\..\..\target\release\wirewave-desktop.exe"
 !endif
+!ifndef VCAM_DLL_PATH
+  !define VCAM_DLL_PATH "..\..\..\target\release\wirewave_vcam.dll"
+!endif
 !ifndef ICON_PATH
   !define ICON_PATH "..\..\..\assets\brand\wirewave.ico"
 !endif
@@ -57,6 +60,7 @@ FunctionEnd
 Section "Install"
   SetOutPath "$INSTDIR"
   File "${BIN_PATH}"
+  File "${VCAM_DLL_PATH}"
   CreateDirectory "$SMPROGRAMS\${APP_NAME}"
   CreateShortcut "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk" "$INSTDIR\wirewave-desktop.exe"
   CreateShortcut "$DESKTOP\${APP_NAME}.lnk" "$INSTDIR\wirewave-desktop.exe"
@@ -71,6 +75,7 @@ SectionEnd
 Section "Uninstall"
   ; Intentionally preserve %LOCALAPPDATA%\WireWave\identity.json so Device ID survives reinstall.
   Delete "$INSTDIR\wirewave-desktop.exe"
+  Delete "$INSTDIR\wirewave_vcam.dll"
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
   Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
