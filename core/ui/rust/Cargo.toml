@@ -1,0 +1,9 @@
+[package]
+name = "wirewave-core-ui"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+gpui = { workspace = true }
+wirewave-core-config = { workspace = true }

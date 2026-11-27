@@ -17,6 +17,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:ui"))
     implementation(project(":core:config"))
     implementation(project(":core:stream"))
     implementation(platform("androidx.compose:compose-bom:2024.02.01"))

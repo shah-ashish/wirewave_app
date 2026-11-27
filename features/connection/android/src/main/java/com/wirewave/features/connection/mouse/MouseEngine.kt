@@ -7,7 +7,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.IOException
-import java.nio.ByteBuffer
 
 class MouseEngine(
     private val scope: CoroutineScope,
@@ -15,16 +14,18 @@ class MouseEngine(
 ) : AutoCloseable {
 
     companion object {
-        const val EVENT_MOVE_REL: Byte = 0x01
-        const val EVENT_BUTTON_DOWN: Byte = 0x02
-        const val EVENT_BUTTON_UP: Byte = 0x03
-        const val EVENT_SCROLL: Byte = 0x04
-        const val EVENT_CLICK: Byte = 0x05
+        const val EVENT_MOVE_REL: Byte = MousePacketEncoder.EVENT_MOVE_REL
+        const val EVENT_BUTTON_DOWN: Byte = MousePacketEncoder.EVENT_BUTTON_DOWN
+        const val EVENT_BUTTON_UP: Byte = MousePacketEncoder.EVENT_BUTTON_UP
+        const val EVENT_SCROLL: Byte = MousePacketEncoder.EVENT_SCROLL
+        const val EVENT_CLICK: Byte = MousePacketEncoder.EVENT_CLICK
 
         const val BUTTON_LEFT: Byte = 1
         const val BUTTON_RIGHT: Byte = 2
         const val BUTTON_MIDDLE: Byte = 3
     }
+
+    private val packetEncoder = MousePacketEncoder()
 
     @Volatile
     private var client: UdpStreamClient? = null
@@ -50,93 +51,38 @@ class MouseEngine(
 
     fun sendMove(rawDx: Float, rawDy: Float, pointerSpeed: Float) {
         val udp = client ?: return
-        val dx = (rawDx * pointerSpeed).toInt().coerceIn(-32768, 32767).toShort()
-        val dy = (rawDy * pointerSpeed).toInt().coerceIn(-32768, 32767).toShort()
-        if (dx == 0.toShort() && dy == 0.toShort()) return
-
-        val packet = ByteBuffer.allocate(6).apply {
-            put(EVENT_MOVE_REL)
-            putShort(dx)
-            putShort(dy)
-            put(0) // button unused for move
-        }.array()
-
-        scope.launch(ioDispatcher) {
-            try {
-                udp.sendDatagram(ChannelId.MOUSE, packet)
-            } catch (_: IOException) {}
-        }
+        val packet = packetEncoder.move(rawDx, rawDy, pointerSpeed) ?: return
+        sendPacket(udp, packet)
     }
 
     fun sendScroll(rawDeltaY: Float, scrollSpeed: Float, naturalScroll: Boolean) {
         val udp = client ?: return
-        // In Traditional mode (naturalScroll = false), dragging down (rawDeltaY > 0)
-        // must produce a negative Win32 wheel delta to scroll down.
-        // In Natural mode (naturalScroll = true), dragging down produces a positive
-        // wheel delta to scroll up (direct manipulation).
-        val direction = if (naturalScroll) 1f else -1f
-        val delta = (rawDeltaY * scrollSpeed * direction).toInt().coerceIn(-32768, 32767).toShort()
-        if (delta == 0.toShort()) return
-
-        val packet = ByteBuffer.allocate(6).apply {
-            put(EVENT_SCROLL)
-            putShort(delta)
-            putShort(0)
-            put(0)
-        }.array()
-
-        scope.launch(ioDispatcher) {
-            try {
-                udp.sendDatagram(ChannelId.MOUSE, packet)
-            } catch (_: IOException) {}
-        }
+        val packet = packetEncoder.scroll(rawDeltaY, scrollSpeed, naturalScroll) ?: return
+        sendPacket(udp, packet)
     }
 
     fun sendClick(button: Byte) {
         val udp = client ?: return
-        val packet = ByteBuffer.allocate(6).apply {
-            put(EVENT_CLICK)
-            putShort(0)
-            putShort(0)
-            put(button)
-        }.array()
-
-        scope.launch(ioDispatcher) {
-            try {
-                udp.sendDatagram(ChannelId.MOUSE, packet)
-            } catch (_: IOException) {}
-        }
+        sendPacket(udp, packetEncoder.click(button))
     }
 
     fun sendButtonDown(button: Byte) {
         val udp = client ?: return
-        val packet = ByteBuffer.allocate(6).apply {
-            put(EVENT_BUTTON_DOWN)
-            putShort(0)
-            putShort(0)
-            put(button)
-        }.array()
-
-        scope.launch(ioDispatcher) {
-            try {
-                udp.sendDatagram(ChannelId.MOUSE, packet)
-            } catch (_: IOException) {}
-        }
+        sendPacket(udp, packetEncoder.buttonDown(button))
     }
 
     fun sendButtonUp(button: Byte) {
         val udp = client ?: return
-        val packet = ByteBuffer.allocate(6).apply {
-            put(EVENT_BUTTON_UP)
-            putShort(0)
-            putShort(0)
-            put(button)
-        }.array()
+        sendPacket(udp, packetEncoder.buttonUp(button))
+    }
 
+    private fun sendPacket(udp: UdpStreamClient, packet: ByteArray) {
         scope.launch(ioDispatcher) {
             try {
                 udp.sendDatagram(ChannelId.MOUSE, packet)
-            } catch (_: IOException) {}
+            } catch (_: IOException) {
+                // Preserve best-effort delivery when the connection closes or a datagram fails.
+            }
         }
     }
 

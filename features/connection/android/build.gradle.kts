@@ -19,7 +19,9 @@ android {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     implementation(project(":core:config"))
+    implementation(project(":core:ui"))
     implementation(project(":core:discovery"))
     implementation(project(":core:transport"))
     implementation(project(":core:session"))

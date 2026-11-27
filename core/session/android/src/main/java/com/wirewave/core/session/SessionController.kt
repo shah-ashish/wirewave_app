@@ -1,7 +1,5 @@
 package com.wirewave.core.session
 
-import android.annotation.SuppressLint
-import android.bluetooth.BluetoothManager
 import android.content.Context
 import com.wirewave.core.stream.ChannelId
 import com.wirewave.core.config.AppConfig
@@ -11,12 +9,10 @@ import com.wirewave.core.crypto.IdentityKeypair
 import com.wirewave.core.crypto.SessionCipher
 import com.wirewave.core.crypto.WireWaveCrypto
 import com.wirewave.core.crypto.toHex
-import com.wirewave.core.crypto.hexToBytesOrNull
 import com.wirewave.core.discovery.DiscoveredHost
 import com.wirewave.core.identity.DeviceIdentity
 import com.wirewave.core.transport.FrameCodec
 import com.wirewave.core.transport.TransportKind
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -34,26 +30,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.DataInputStream
 import java.io.DataOutputStream
-import java.io.IOException
-import java.io.Closeable
-import java.net.InetSocketAddress
-import java.net.Socket
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicReference
-
-sealed interface ClientSessionState {
-    data class Disconnected(val errorMessage: String? = null) : ClientSessionState
-    data class Connecting(val host: DiscoveredHost) : ClientSessionState
-    data class AwaitingOtp(
-        val host: DiscoveredHost,
-        val errorMessage: String? = null
-    ) : ClientSessionState
-    data class Connected(
-        val desktopId: String,
-        val pcName: String,
-        val transport: TransportKind
-    ) : ClientSessionState
-}
 
 /**
  * Manages the encrypted WireWave session lifecycle on Android:
@@ -69,15 +46,23 @@ class SessionController(
     private val onForegroundStateChanged: (active: Boolean, pcName: String?) -> Unit = { _, _ -> },
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO
 ) {
-    private val appContext = context.applicationContext
+    private val transportRunner = SessionTransportRunner(
+        context = context,
+        onConnectionLost = { message ->
+            onForegroundStateChanged(false, null)
+            _state.update { ClientSessionState.Disconnected(message) }
+        },
+        onFailure = ::failSession,
+        runProtocol = ::runSessionProtocol
+    )
     private val _state = MutableStateFlow<ClientSessionState>(ClientSessionState.Disconnected())
     val state: StateFlow<ClientSessionState> = _state.asStateFlow()
-    private val _speakerState = MutableStateFlow(FeatureRemoteState(channel = ChannelId.SPEAKER, allowed = true))
-    val speakerState: StateFlow<FeatureRemoteState> = _speakerState.asStateFlow()
-    private val _micState = MutableStateFlow(FeatureRemoteState(channel = ChannelId.MIC, allowed = false))
-    val micState: StateFlow<FeatureRemoteState> = _micState.asStateFlow()
-    private val _mouseState = MutableStateFlow(FeatureRemoteState(channel = ChannelId.MOUSE, allowed = true))
-    val mouseState: StateFlow<FeatureRemoteState> = _mouseState.asStateFlow()
+    private val speakerStateStore = RemoteFeatureStateStore(ChannelId.SPEAKER, allowedByDefault = true)
+    val speakerState: StateFlow<FeatureRemoteState> = speakerStateStore.state
+    private val micStateStore = RemoteFeatureStateStore(ChannelId.MIC, allowedByDefault = false)
+    val micState: StateFlow<FeatureRemoteState> = micStateStore.state
+    private val mouseStateStore = RemoteFeatureStateStore(ChannelId.MOUSE, allowedByDefault = true)
+    val mouseState: StateFlow<FeatureRemoteState> = mouseStateStore.state
     private val outboundControls = AtomicReference<OutboundControlQueue?>(null)
 
     fun featureState(channel: ChannelId): StateFlow<FeatureRemoteState> = when (channel) {
@@ -97,7 +82,6 @@ class SessionController(
     }
 
     private var connectionJob: Job? = null
-    private var activeConnection: Closeable? = null
     private var otpInputDeferred: CompletableDeferred<String>? = null
 
     fun connect(host: DiscoveredHost) {
@@ -110,10 +94,7 @@ class SessionController(
         _state.update { ClientSessionState.Connecting(host) }
 
         connectionJob = scope.launch(ioDispatcher) {
-            when (host.transport) {
-                TransportKind.WIFI -> runWifiSession(host)
-                TransportKind.BLUETOOTH -> runBluetoothSession(host)
-            }
+            transportRunner.run(host)
         }
     }
 
@@ -122,17 +103,17 @@ class SessionController(
     }
 
     fun requestSpeakerActive(active: Boolean) {
-        if (active && !_speakerState.value.allowed) return
+        if (active && !speakerState.value.allowed) return
         outboundControls.get()?.trySendSpeaker(active)
     }
 
     fun requestMicActive(active: Boolean) {
-        if (active && !_micState.value.allowed) return
+        if (active && !micState.value.allowed) return
         outboundControls.get()?.trySendMic(active)
     }
 
     fun requestMouseActive(active: Boolean) {
-        if (active && !_mouseState.value.allowed) return
+        if (active && !mouseState.value.allowed) return
         outboundControls.get()?.trySendFeature(ChannelId.MOUSE, active)
     }
 
@@ -162,73 +143,9 @@ class SessionController(
     private fun cancelActiveJob() {
         otpInputDeferred?.cancel()
         otpInputDeferred = null
-        try {
-            activeConnection?.close()
-        } catch (_: IOException) {
-            // Closing active socket to unblock I/O.
-        }
-        activeConnection = null
+        transportRunner.close()
         connectionJob?.cancel()
         connectionJob = null
-    }
-
-    private suspend fun runWifiSession(host: DiscoveredHost) {
-        val socket = Socket()
-        activeConnection = socket
-        try {
-            socket.connect(InetSocketAddress(host.hostAddress, host.tcpPort), 5000)
-            socket.soTimeout = AppConfig.connection.heartbeatTimeoutSecs * 1000
-            runSessionProtocol(host, socket.getInputStream(), socket.getOutputStream())
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: IOException) {
-            onForegroundStateChanged(false, null)
-            _state.update { ClientSessionState.Disconnected("Connection lost.") }
-        } finally {
-            try {
-                socket.close()
-            } catch (_: IOException) {
-                // Socket cleanup.
-            }
-            if (activeConnection === socket) activeConnection = null
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    private suspend fun runBluetoothSession(host: DiscoveredHost) {
-        val manager = appContext.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-            ?: return failSession("Bluetooth is unavailable.")
-        val adapter = manager.adapter ?: return failSession("Bluetooth is unavailable.")
-        val device = try {
-            adapter.getRemoteDevice(host.hostAddress)
-        } catch (_: IllegalArgumentException) {
-            return failSession("Invalid Bluetooth device address.")
-        }
-        val socket = try {
-            device.createRfcommSocketToServiceRecord(UUID.fromString(AppConfig.connection.btServiceUuid))
-        } catch (_: SecurityException) {
-            return failSession("Bluetooth permission is required.")
-        }
-        activeConnection = socket
-        try {
-            adapter.cancelDiscovery()
-            socket.connect()
-            runSessionProtocol(host, socket.inputStream, socket.outputStream)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (_: SecurityException) {
-            failSession("Bluetooth permission is required.")
-        } catch (_: IOException) {
-            onForegroundStateChanged(false, null)
-            _state.update { ClientSessionState.Disconnected("Bluetooth connection lost.") }
-        } finally {
-            try {
-                socket.close()
-            } catch (_: IOException) {
-                // Socket cleanup.
-            }
-            if (activeConnection === socket) activeConnection = null
-        }
     }
 
     private suspend fun runSessionProtocol(
@@ -449,60 +366,9 @@ class SessionController(
                                 "heartbeat_ping" -> controls.sendHeartbeatPong(
                                     msg.optLong("seq", ++seq)
                                 )
-                                "speaker_state" -> {
-                                    val active = msg.optBoolean("active", false)
-                                    val key = msg.optString("udp_key_hex")
-                                        .takeIf { active && it.length == 64 }
-                                        ?.hexToBytesOrNull()
-                                    _speakerState.update {
-                                        FeatureRemoteState(
-                                            channel = ChannelId.SPEAKER,
-                                            allowed = msg.optBoolean("allowed", false),
-                                            active = active,
-                                            hostAddress = hostAddress,
-                                            udpPort = msg.optInt("udp_port").takeIf { active && it > 0 },
-                                            streamId = msg.optInt("stream_id").takeIf { active },
-                                            udpKey = key,
-                                            detail = msg.optString("detail").takeIf { it.isNotBlank() }
-                                        )
-                                    }
-                                }
-                                "mic_state" -> {
-                                    val active = msg.optBoolean("active", false)
-                                    val key = msg.optString("udp_key_hex")
-                                        .takeIf { active && it.length == 64 }
-                                        ?.hexToBytesOrNull()
-                                    _micState.update {
-                                        FeatureRemoteState(
-                                            channel = ChannelId.MIC,
-                                            allowed = msg.optBoolean("allowed", false),
-                                            active = active,
-                                            hostAddress = hostAddress,
-                                            udpPort = msg.optInt("udp_port").takeIf { active && it > 0 },
-                                            streamId = msg.optInt("stream_id").takeIf { active },
-                                            udpKey = key,
-                                            detail = msg.optString("detail").takeIf { it.isNotBlank() }
-                                        )
-                                    }
-                                }
-                                "mouse_state" -> {
-                                    val active = msg.optBoolean("active", false)
-                                    val key = msg.optString("udp_key_hex")
-                                        .takeIf { active && it.length == 64 }
-                                        ?.hexToBytesOrNull()
-                                    _mouseState.update {
-                                        FeatureRemoteState(
-                                            channel = ChannelId.MOUSE,
-                                            allowed = msg.optBoolean("allowed", false),
-                                            active = active,
-                                            hostAddress = hostAddress,
-                                            udpPort = msg.optInt("udp_port").takeIf { active && it > 0 },
-                                            streamId = msg.optInt("stream_id").takeIf { active },
-                                            udpKey = key,
-                                            detail = msg.optString("detail").takeIf { it.isNotBlank() }
-                                        )
-                                    }
-                                }
+                                "speaker_state" -> speakerStateStore.updateFromMessage(msg, hostAddress)
+                                "mic_state" -> micStateStore.updateFromMessage(msg, hostAddress)
+                                "mouse_state" -> mouseStateStore.updateFromMessage(msg, hostAddress)
                                 "disconnect" -> break
                             }
                         }
@@ -516,9 +382,9 @@ class SessionController(
             outboundControls.compareAndSet(controls, null)
             controls.close()
             onForegroundStateChanged(false, null)
-            _speakerState.update { FeatureRemoteState(channel = ChannelId.SPEAKER, allowed = true) }
-            _micState.update { FeatureRemoteState(channel = ChannelId.MIC, allowed = false) }
-            _mouseState.update { FeatureRemoteState(channel = ChannelId.MOUSE, allowed = true) }
+            speakerStateStore.reset()
+            micStateStore.reset()
+            mouseStateStore.reset()
             _state.update { ClientSessionState.Disconnected() }
         }
     }
@@ -526,9 +392,9 @@ class SessionController(
     private fun failSession(message: String) {
         onForegroundStateChanged(false, null)
         outboundControls.getAndSet(null)?.close()
-        _speakerState.update { FeatureRemoteState(channel = ChannelId.SPEAKER, allowed = true) }
-        _micState.update { FeatureRemoteState(channel = ChannelId.MIC, allowed = false) }
-        _mouseState.update { FeatureRemoteState(channel = ChannelId.MOUSE, allowed = true) }
+        speakerStateStore.reset()
+        micStateStore.reset()
+        mouseStateStore.reset()
         _state.update { ClientSessionState.Disconnected(message) }
     }
 

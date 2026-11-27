@@ -6,7 +6,9 @@ pub mod feature_registry;
 pub mod handshake;
 pub mod key_injector;
 pub mod session_manager;
+pub mod session_state;
 pub mod settings_store;
+mod stream_hosts;
 pub mod transport_listener;
 pub mod trust_store;
 

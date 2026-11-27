@@ -9,6 +9,19 @@ pub const BUTTON_LEFT: u8 = 1;
 pub const BUTTON_RIGHT: u8 = 2;
 pub const BUTTON_MIDDLE: u8 = 3;
 
+/// Dispatches a decoded event to the platform input functions.
+pub(crate) fn inject_event(event: crate::packet::MouseEvent) {
+    use crate::packet::MouseEvent;
+
+    match event {
+        MouseEvent::Move { dx, dy } => inject_relative_move(dx, dy),
+        MouseEvent::ButtonDown { button } => inject_button_down(button),
+        MouseEvent::ButtonUp { button } => inject_button_up(button),
+        MouseEvent::Scroll { delta } => inject_scroll(delta),
+        MouseEvent::Click { button } => inject_click(button),
+    }
+}
+
 #[cfg(windows)]
 fn send_mouse_event(flags: MOUSE_EVENT_FLAGS, dx: i32, dy: i32, data: u32) {
     let input = INPUT {

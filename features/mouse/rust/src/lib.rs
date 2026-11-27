@@ -1,4 +1,5 @@
 pub mod input_injector;
+mod packet;
 pub mod ui;
 
 pub use ui::{render_mouse_tile, MouseTileState};
@@ -11,11 +12,8 @@ use tokio::sync::watch;
 use wirewave_core_session::{ConnectionPreferences, ControlMessage, FeatureHost};
 use wirewave_core_stream::{ChannelId, UdpDataChannel};
 
-pub const EVENT_MOVE_REL: u8 = 0x01;
-pub const EVENT_BUTTON_DOWN: u8 = 0x02;
-pub const EVENT_BUTTON_UP: u8 = 0x03;
-pub const EVENT_SCROLL: u8 = 0x04;
-pub const EVENT_CLICK: u8 = 0x05;
+pub use packet::{EVENT_BUTTON_DOWN, EVENT_BUTTON_UP, EVENT_CLICK, EVENT_MOVE_REL, EVENT_SCROLL};
+use packet::MouseEvent;
 
 pub struct MouseService {
     running: Arc<AtomicBool>,
@@ -84,32 +82,8 @@ impl MouseService {
                             continue;
                         };
 
-                        if payload.len() < 5 {
-                            continue;
-                        }
-
-                        let event_type = payload[0];
-                        let arg1 = i16::from_be_bytes([payload[1], payload[2]]);
-                        let arg2 = i16::from_be_bytes([payload[3], payload[4]]);
-                        let button = if payload.len() >= 6 { payload[5] } else { 1 };
-
-                        match event_type {
-                            EVENT_MOVE_REL => {
-                                input_injector::inject_relative_move(arg1, arg2);
-                            }
-                            EVENT_BUTTON_DOWN => {
-                                input_injector::inject_button_down(button);
-                            }
-                            EVENT_BUTTON_UP => {
-                                input_injector::inject_button_up(button);
-                            }
-                            EVENT_SCROLL => {
-                                input_injector::inject_scroll(arg1);
-                            }
-                            EVENT_CLICK => {
-                                input_injector::inject_click(button);
-                            }
-                            _ => {}
+                        if let Some(event) = MouseEvent::decode(&payload) {
+                            input_injector::inject_event(event);
                         }
                     }
                 }

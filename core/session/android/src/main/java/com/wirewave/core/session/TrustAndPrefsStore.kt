@@ -7,24 +7,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-data class ConnectionPrefs(
-    val autoConnect: Boolean = true,
-    val keepAliveInBackground: Boolean = true
-)
-
-data class MousePrefs(
-    val pointerSpeed: Float = 1.0f,
-    val scrollSpeed: Float = 1.0f,
-    val naturalScroll: Boolean = true,
-    val showMouseButtons: Boolean = true
-)
-
-data class TrustedDesktop(
-    val desktopId: String,
-    val pcName: String,
-    val publicKeyHex: String
-)
-
 class TrustAndPrefsStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val _connectionPrefs = MutableStateFlow(loadPrefs())

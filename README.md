@@ -2,7 +2,7 @@
 
 WireWave connects an Android phone to a Windows PC over Wi-Fi or Bluetooth. It provides encrypted speaker streaming, microphone streaming, mouse control, and keyboard input through native desktop and Android applications.
 
-Current release version: **1.2.5**
+Current release version: **1.2.6**
 
 ## Features
 
@@ -247,6 +247,9 @@ Releases are driven by tags matching `v*`:
 Required Android release secrets are `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and `ANDROID_KEY_PASSWORD`.
 
 ## Contributing
+
+See the [contributor guide](docs/contributor-guide.md) for module ownership, reusable UI,
+feature integration, and verification of the refactored code.
 
 Keep core infrastructure independent, keep feature slices isolated, and keep application shells thin. Before submitting changes, run the Rust and Android test commands above and confirm that secrets, keystores, build output, and generated installers are not committed.
 

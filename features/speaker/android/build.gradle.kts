@@ -19,6 +19,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":core:ui"))
     implementation(project(":core:config"))
     implementation(project(":core:stream"))
 

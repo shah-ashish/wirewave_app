@@ -7088,14 +7088,14 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-compatibility"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "wirewave-core-config",
 ]
 
 [[package]]
 name = "wirewave-core-config"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "serde",
  "serde_json",
@@ -7103,7 +7103,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-crypto"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "chacha20poly1305",
  "directories",
@@ -7123,7 +7123,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-discovery"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "hex",
  "serde",
@@ -7135,7 +7135,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-identity"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "directories",
  "hex",
@@ -7150,7 +7150,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-session"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "directories",
  "hex",
@@ -7174,7 +7174,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-stream"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "chacha20poly1305",
  "serde",
@@ -7189,7 +7189,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-core-transport"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "serde",
  "serde_json",
@@ -7199,8 +7199,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "wirewave-core-ui"
+version = "1.2.6"
+dependencies = [
+ "gpui",
+ "wirewave-core-config",
+]
+
+[[package]]
 name = "wirewave-core-updater"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "hex",
  "open",
@@ -7214,7 +7222,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-desktop"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "gpui",
  "serde",
@@ -7237,7 +7245,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-feature-connection"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "gpui",
  "wirewave-core-config",
@@ -7248,7 +7256,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-feature-mic"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "gpui",
  "open",
@@ -7258,11 +7266,12 @@ dependencies = [
  "wirewave-core-config",
  "wirewave-core-session",
  "wirewave-core-stream",
+ "wirewave-core-ui",
 ]
 
 [[package]]
 name = "wirewave-feature-mouse"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "gpui",
  "thiserror 2.0.21",
@@ -7273,11 +7282,12 @@ dependencies = [
  "wirewave-core-session",
  "wirewave-core-stream",
  "wirewave-core-transport",
+ "wirewave-core-ui",
 ]
 
 [[package]]
 name = "wirewave-feature-settings"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "gpui",
  "hostname",
@@ -7293,7 +7303,7 @@ dependencies = [
 
 [[package]]
 name = "wirewave-feature-speaker"
-version = "1.2.5"
+version = "1.2.6"
 dependencies = [
  "gpui",
  "thiserror 2.0.21",
@@ -7303,6 +7313,7 @@ dependencies = [
  "wirewave-core-config",
  "wirewave-core-session",
  "wirewave-core-stream",
+ "wirewave-core-ui",
 ]
 
 [[package]]

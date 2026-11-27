@@ -1,15 +1,14 @@
 use crate::{
     active_channel::ActiveControlChannel,
-    feature_host::FeatureHost,
     feature_registry::{FeatureRegistry, SharedFeatureRegistry},
     handshake::{HandshakeCoordinator, decode_x25519, send_control},
-    settings_store::{ConnectionPreferences, PreferencesStore},
-    trust_store::{TrustStore, TrustedDevice},
+    settings_store::PreferencesStore,
+    stream_hosts::{MicHostAdapter, SpeakerHostAdapter},
+    trust_store::TrustStore,
 };
 use std::{
     net::SocketAddr,
     sync::{Arc, RwLock},
-    time::Instant,
 };
 use tokio::{
     net::{TcpListener, TcpStream},
@@ -19,70 +18,14 @@ use wirewave_core_config::APP_CONFIG;
 use wirewave_core_crypto::IdentityKeypair;
 use wirewave_core_discovery::run_udp_discovery_responder;
 use wirewave_core_identity::DeviceIdentity;
-use wirewave_core_stream::{ChannelId, UdpDataChannel};
+use wirewave_core_stream::ChannelId;
 use wirewave_core_transport::{
     ControlMessage, RejectCode, TransportKind, TransportPriority, read_frame,
 };
 
-#[derive(Debug, Clone)]
-pub struct PendingPairing {
-    pub device_id: String,
-    pub device_name: String,
-    pub transport: TransportKind,
-    pub otp_code: String,
-    pub expires_at: Instant,
-    pub ttl_secs: u64,
-}
-
-impl PendingPairing {
-    pub fn remaining_secs(&self) -> u64 {
-        self.expires_at
-            .saturating_duration_since(Instant::now())
-            .as_secs()
-    }
-
-    pub fn formatted_code(&self) -> String {
-        match self.otp_code.len() == 6 {
-            true => format!("{}  {}", &self.otp_code[..3], &self.otp_code[3..]),
-            false => self.otp_code.clone(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct ActiveSession {
-    pub device_id: String,
-    pub device_name: String,
-    pub transport: TransportKind,
-}
-
-impl ActiveSession {
-    pub fn short_id(&self) -> String {
-        let raw = self.device_id.trim_start_matches("wwd_");
-        match raw.len() >= 8 {
-            true => format!("{}-{}", &raw[..4], &raw[4..8]),
-            false => raw.to_string(),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum SessionState {
-    Idle,
-    Pairing(PendingPairing),
-    Connected(ActiveSession),
-}
-
-#[derive(Debug, Clone)]
-pub struct SessionSnapshot {
-    pub pc_name: String,
-    pub state: SessionState,
-    pub preferences: ConnectionPreferences,
-    pub trusted_devices: Vec<TrustedDevice>,
-    pub blocked_devices: Vec<TrustedDevice>,
-    pub wifi_listening: bool,
-    pub bluetooth_listening: bool,
-}
+// Preserve existing import paths for consumers of session_manager.
+pub use crate::session_state::{ActiveSession, PendingPairing, SessionSnapshot, SessionState};
+pub use crate::stream_hosts::{MicStreamHost, SpeakerStreamHost};
 
 struct SessionInner {
     state: SessionState,
@@ -105,118 +48,6 @@ struct HandshakeReservation {
 }
 
 pub type SharedSession = Arc<SessionManager>;
-
-/// Legacy trait for Speaker feature compatibility.
-pub trait SpeakerStreamHost: Send + Sync {
-    fn start_stream(&self, channel: Arc<UdpDataChannel>, runtime: tokio::runtime::Handle);
-    fn stop_stream(&self);
-    fn status_detail(&self) -> Option<String>;
-}
-
-/// Legacy trait for Microphone feature compatibility.
-pub trait MicStreamHost: Send + Sync {
-    fn start_stream(
-        &self,
-        channel: Arc<UdpDataChannel>,
-        runtime: tokio::runtime::Handle,
-    ) -> Result<String, String>;
-    fn stop_stream(&self);
-    fn available_driver(&self) -> Option<String>;
-}
-
-/// Adapter converting legacy SpeakerStreamHost into polymorphic FeatureHost.
-struct SpeakerHostAdapter(Arc<dyn SpeakerStreamHost>);
-impl FeatureHost for SpeakerHostAdapter {
-    fn channel_id(&self) -> ChannelId {
-        ChannelId::Speaker
-    }
-    fn display_name(&self) -> &'static str {
-        "Speaker"
-    }
-    fn is_allowed(&self, prefs: &ConnectionPreferences) -> bool {
-        prefs.speaker_service_allowed
-    }
-    fn status_detail(&self) -> Option<String> {
-        self.0.status_detail()
-    }
-    fn requires_peer_hello(&self) -> bool {
-        true
-    }
-    fn start_stream(
-        &self,
-        channel: Arc<UdpDataChannel>,
-        runtime: tokio::runtime::Handle,
-    ) -> Result<Option<String>, String> {
-        self.0.start_stream(channel, runtime);
-        Ok(self.status_detail())
-    }
-    fn stop_stream(&self) {
-        self.0.stop_stream();
-    }
-    fn make_state_message(
-        &self,
-        allowed: bool,
-        active: bool,
-        detail: Option<String>,
-        udp_port: Option<u16>,
-        stream_id: Option<u32>,
-        udp_key_hex: Option<String>,
-    ) -> ControlMessage {
-        ControlMessage::SpeakerState {
-            allowed,
-            active,
-            detail,
-            udp_port,
-            stream_id,
-            udp_key_hex,
-        }
-    }
-}
-
-/// Adapter converting legacy MicStreamHost into polymorphic FeatureHost.
-struct MicHostAdapter(Arc<dyn MicStreamHost>);
-impl FeatureHost for MicHostAdapter {
-    fn channel_id(&self) -> ChannelId {
-        ChannelId::Mic
-    }
-    fn display_name(&self) -> &'static str {
-        "Microphone"
-    }
-    fn is_allowed(&self, prefs: &ConnectionPreferences) -> bool {
-        prefs.mic_service_allowed && self.0.available_driver().is_some()
-    }
-    fn status_detail(&self) -> Option<String> {
-        self.0.available_driver()
-    }
-    fn start_stream(
-        &self,
-        channel: Arc<UdpDataChannel>,
-        runtime: tokio::runtime::Handle,
-    ) -> Result<Option<String>, String> {
-        self.0.start_stream(channel, runtime).map(Some)
-    }
-    fn stop_stream(&self) {
-        self.0.stop_stream();
-    }
-    fn make_state_message(
-        &self,
-        allowed: bool,
-        active: bool,
-        detail: Option<String>,
-        udp_port: Option<u16>,
-        stream_id: Option<u32>,
-        udp_key_hex: Option<String>,
-    ) -> ControlMessage {
-        ControlMessage::MicState {
-            allowed,
-            active,
-            detail,
-            udp_port,
-            stream_id,
-            udp_key_hex,
-        }
-    }
-}
 
 /// Coordinates the 1-to-1 desktop session lock, trust store, priority arbitration,
 /// and delegates handshakes and active control loop handling to focused collaborator objects.

@@ -16,6 +16,9 @@ dependencyResolutionManagement {
 
 rootProject.name = "wirewave-android"
 
+include(":core:ui")
+project(":core:ui").projectDir = file("../../core/ui/android")
+
 include(":core:config")
 project(":core:config").projectDir = file("../../core/config/android")
 

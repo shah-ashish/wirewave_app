@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "core/ui/rust",
     "core/config/rust",
     "core/identity/rust",
     "core/compatibility/rust",
@@ -19,7 +20,7 @@ members = [
 ]
 
 [workspace.package]
-version = "1.2.5"
+version = "1.2.6"
 edition = "2024"
 authors = ["WireWave Team"]
 license = "MIT"
@@ -60,6 +61,7 @@ windows = { version = "0.58", features = [
 ] }
 
 wirewave-core-config = { path = "core/config/rust" }
+wirewave-core-ui = { path = "core/ui/rust" }
 wirewave-core-identity = { path = "core/identity/rust" }
 wirewave-core-compatibility = { path = "core/compatibility/rust" }
 wirewave-core-updater = { path = "core/updater/rust" }
