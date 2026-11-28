@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.0.0] - 2026-11-28
+
+### Changed
+
+- Redesigned Desktop Home (Idle, Pairing, and Connected views) with responsive layout, balanced 3-column active service tiles, and high-contrast Disconnect button.
+- Unified Desktop Settings into a single scrollable screen, merged Virtual Microphone Driver inline, redesigned Devices without inner tabs or raw IDs, and moved software update controls to a bottom sidebar icon and overlay.
+- Redesigned Android Discovery, Connected Home, Settings, and Paired Computers screens with surface cards, aligned audio/input controls, 44dp+ touch targets, and `WireWaveTheme` token consistency.
+
+### Added
+
+- Desktop sidebar update icon and floating update overlay.
+- Version row in Desktop and Android About sections.
+
 ## [1.2.6] - 2026-11-27
 
 ### Changed
