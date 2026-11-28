@@ -105,7 +105,7 @@ fun ConnectedHomeScreen(
                 }
             )
 
-            FeatureNavigationList(title = "Use phone as", rows = rows)
+            FeatureNavigationList(title = "USE PHONE AS", rows = rows)
         }
 
         // Screen Overlay Host (Controls popping up on the current screen)

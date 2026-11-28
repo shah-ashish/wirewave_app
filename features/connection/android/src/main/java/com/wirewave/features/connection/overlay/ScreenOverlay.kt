@@ -35,7 +35,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -231,9 +230,9 @@ private fun KeyButton(
 
     Box(
         modifier = modifier
-            .height(42.dp)
+            .height(44.dp)
             .clip(keyShape)
-            .background(if (isPressed) Color(0xFF404044) else Color(0xFF26262A))
+            .background(if (isPressed) WireWaveTheme.Colors.borderSubtle else WireWaveTheme.Colors.divider)
             .clickable(interactionSource = interaction, indication = null, onClick = {}),
         contentAlignment = Alignment.Center
     ) {
@@ -258,9 +257,9 @@ private fun KeyIconButton(
 
     Box(
         modifier = modifier
-            .height(42.dp)
+            .height(44.dp)
             .clip(keyShape)
-            .background(if (isPressed) Color(0xFF404044) else Color(0xFF1E1E22))
+            .background(if (isPressed) WireWaveTheme.Colors.borderSubtle else WireWaveTheme.Colors.bgCardHover)
             .clickable(interactionSource = interaction, indication = null, onClick = {}),
         contentAlignment = Alignment.Center
     ) {
@@ -287,7 +286,7 @@ private fun ControlKeyButton(
         modifier = modifier
             .height(44.dp)
             .clip(shape)
-            .background(if (isPressed) Color(0xFF424248) else Color(0xFF26262A))
+            .background(if (isPressed) WireWaveTheme.Colors.bgCardHover else WireWaveTheme.Colors.divider)
             .border(1.dp, WireWaveTheme.Colors.borderSubtle, shape)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center
@@ -315,7 +314,7 @@ private fun ControlKeyIconButton(
         modifier = modifier
             .height(44.dp)
             .clip(shape)
-            .background(if (isPressed) Color(0xFF424248) else Color(0xFF26262A))
+            .background(if (isPressed) WireWaveTheme.Colors.bgCardHover else WireWaveTheme.Colors.divider)
             .border(1.dp, WireWaveTheme.Colors.borderSubtle, shape)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center

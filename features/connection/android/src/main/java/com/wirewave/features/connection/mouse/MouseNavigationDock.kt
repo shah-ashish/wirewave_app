@@ -37,36 +37,31 @@ internal fun MouseNavigationDock(
     onKeyboardToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val dockShape = RoundedCornerShape(26.dp)
+    val dockShape = RoundedCornerShape(28.dp)
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
+            .height(56.dp)
             .clip(dockShape)
             .background(WireWaveTheme.Colors.bgCard)
             .border(1.dp, WireWaveTheme.Colors.borderSubtle, dockShape)
-            .padding(horizontal = 10.dp),
+            .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // 1. Home
         DockIconButton(
             icon = Icons.Rounded.Home,
             contentDescription = "Home",
             isActive = false,
             onClick = onHomeClick
         )
-
-        // 2. Controls
         DockIconButton(
             icon = Icons.Rounded.Tune,
             contentDescription = "Controls",
             isActive = controlsActive,
             onClick = onControlsToggle
         )
-
-        // 3. Keyboard
         DockIconButton(
             icon = Icons.Rounded.Keyboard,
             contentDescription = "Keyboard",
@@ -83,11 +78,11 @@ private fun DockIconButton(
     isActive: Boolean,
     onClick: () -> Unit
 ) {
-    val pillShape = RoundedCornerShape(16.dp)
+    val pillShape = RoundedCornerShape(18.dp)
     Box(
         modifier = Modifier
             .width(56.dp)
-            .height(38.dp)
+            .height(44.dp)
             .clip(pillShape)
             .background(if (isActive) WireWaveTheme.Colors.accentBlue else Color.Transparent)
             .clickable(role = Role.Button, onClick = onClick),
@@ -96,7 +91,7 @@ private fun DockIconButton(
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
-            tint = if (isActive) Color.White else WireWaveTheme.Colors.textSecondary,
+            tint = if (isActive) WireWaveTheme.Colors.textPrimary else WireWaveTheme.Colors.textSecondary,
             modifier = Modifier.size(22.dp)
         )
     }

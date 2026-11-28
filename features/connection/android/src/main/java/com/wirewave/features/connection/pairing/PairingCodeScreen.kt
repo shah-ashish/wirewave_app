@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -78,8 +79,9 @@ fun PairingCodeScreen(
         ) {
             Row(
                 modifier = Modifier
+                    .defaultMinSize(minHeight = 44.dp)
                     .clickable(role = Role.Button, onClick = onBack)
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 8.dp, horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
@@ -96,9 +98,10 @@ fun PairingCodeScreen(
             }
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
                     .background(WireWaveTheme.Colors.bgCard)
+                    .border(1.dp, WireWaveTheme.Colors.borderSubtle, CircleShape)
                     .clickable(role = Role.Button, onClick = onOpenSettings),
                 contentAlignment = Alignment.Center
             ) {
@@ -202,14 +205,18 @@ fun PairingCodeScreen(
             onClick = { onSubmitCode(code) },
             enabled = code.length == 6,
             shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = WireWaveTheme.Colors.accentBlue),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = WireWaveTheme.Colors.textPrimary,
+                contentColor = WireWaveTheme.Colors.bgCanvas,
+                disabledContainerColor = WireWaveTheme.Colors.bgCardHover,
+                disabledContentColor = WireWaveTheme.Colors.textSecondary
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
         ) {
             Text(
                 text = "Connect",
-                color = WireWaveTheme.Colors.textPrimary,
                 fontSize = WireWaveTheme.Typography.body,
                 fontWeight = FontWeight.SemiBold
             )

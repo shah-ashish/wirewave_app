@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.wirewave.core.config.AppConfig
 import com.wirewave.core.config.WireWaveTheme
 import com.wirewave.features.settings.components.SectionLabel
 import com.wirewave.features.settings.components.SettingRow
@@ -24,6 +25,7 @@ fun AboutSection(
 ) {
     val rows = listOf(
         AboutRowSpec("App name", snapshot.appName),
+        AboutRowSpec("Version", AppConfig.versionName, monospace = true),
         AboutRowSpec("Device name", snapshot.deviceName),
         AboutRowSpec("Connected PC", snapshot.connectedPc),
         AboutRowSpec("App ID", snapshot.appId, monospace = true)

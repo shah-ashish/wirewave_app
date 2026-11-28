@@ -6,8 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Bluetooth
 import androidx.compose.material.icons.rounded.DesktopWindows
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Button
@@ -35,7 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.wirewave.core.config.AppConfig
@@ -69,9 +72,10 @@ fun DiscoveryScreen(
             brandMark()
             Box(
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
                     .background(WireWaveTheme.Colors.bgCard)
+                    .border(1.dp, WireWaveTheme.Colors.borderSubtle, CircleShape)
                     .clickable(role = Role.Button, onClick = onOpenSettings),
                 contentAlignment = Alignment.Center
             ) {
@@ -85,12 +89,8 @@ fun DiscoveryScreen(
         }
 
         if (errorMessage != null) {
-            Spacer(modifier = Modifier.height(10.dp))
-            Text(
-                text = errorMessage,
-                color = WireWaveTheme.Colors.statusErrFg,
-                fontSize = WireWaveTheme.Typography.badge
-            )
+            Spacer(modifier = Modifier.height(12.dp))
+            DiscoveryErrorBanner(message = errorMessage)
         }
 
         when {
@@ -110,62 +110,145 @@ fun DiscoveryScreen(
 }
 
 @Composable
+private fun DiscoveryErrorBanner(message: String) {
+    val shape = RoundedCornerShape(12.dp)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(WireWaveTheme.Colors.statusErrBg)
+            .border(1.dp, WireWaveTheme.Colors.statusErrFg.copy(alpha = 0.45f), shape)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            imageVector = Icons.Rounded.ErrorOutline,
+            contentDescription = null,
+            tint = WireWaveTheme.Colors.statusErrFg,
+            modifier = Modifier.size(18.dp)
+        )
+        Text(
+            text = message,
+            color = WireWaveTheme.Colors.statusErrFg,
+            fontSize = WireWaveTheme.Typography.badge,
+            fontWeight = FontWeight.Medium
+        )
+    }
+}
+
+@Composable
 private fun EmptyComputersView(
     isScanning: Boolean,
     onScan: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
+    val cardShape = RoundedCornerShape(WireWaveTheme.Metrics.radiusCard)
+    Box(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(cardShape)
+                .background(WireWaveTheme.Colors.bgCard)
+                .border(1.dp, WireWaveTheme.Colors.borderSubtle, cardShape)
+                .padding(22.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(WireWaveTheme.Colors.bgCardHover)
+                        .border(1.dp, WireWaveTheme.Colors.borderSubtle, RoundedCornerShape(14.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DesktopWindows,
+                        contentDescription = null,
+                        tint = WireWaveTheme.Colors.textSecondary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        text = "No computers found",
+                        color = WireWaveTheme.Colors.textPrimary,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Looking on local network and Bluetooth",
+                        color = WireWaveTheme.Colors.textSecondary,
+                        fontSize = WireWaveTheme.Typography.badge
+                    )
+                }
+            }
+
+            HorizontalDivider(thickness = 1.dp, color = WireWaveTheme.Colors.divider)
+
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                ChecklistRow("1", "Connect phone and PC to the same Wi-Fi network or pair Bluetooth.")
+                ChecklistRow("2", "Make sure ${AppConfig.appName} is open and ready on your Windows PC.")
+            }
+
+            Button(
+                onClick = onScan,
+                enabled = !isScanning,
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = WireWaveTheme.Colors.textPrimary,
+                    contentColor = WireWaveTheme.Colors.bgCanvas,
+                    disabledContainerColor = WireWaveTheme.Colors.bgCardHover,
+                    disabledContentColor = WireWaveTheme.Colors.textSecondary
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Text(
+                    text = if (isScanning) "Scanning..." else "Scan again",
+                    fontSize = WireWaveTheme.Typography.body,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ChecklistRow(step: String, text: String) {
+    Row(
+        verticalAlignment = Alignment.Top,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(64.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(WireWaveTheme.Colors.bgCard),
+                .size(22.dp)
+                .clip(CircleShape)
+                .background(WireWaveTheme.Colors.bgSidebar)
+                .border(1.dp, WireWaveTheme.Colors.borderSubtle, CircleShape),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Rounded.DesktopWindows,
-                contentDescription = null,
-                tint = WireWaveTheme.Colors.textSecondary,
-                modifier = Modifier.size(28.dp)
-            )
-        }
-        Spacer(modifier = Modifier.height(20.dp))
-        Text(
-            text = "No computers found",
-            color = WireWaveTheme.Colors.textPrimary,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Spacer(modifier = Modifier.height(10.dp))
-        Text(
-            text = "Make sure your phone and PC are on the same Wi-Fi network, and that ${AppConfig.appName} is running on your PC.",
-            color = WireWaveTheme.Colors.textSecondary,
-            fontSize = WireWaveTheme.Typography.body,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = 24.dp)
-        )
-        Spacer(modifier = Modifier.height(28.dp))
-        Button(
-            onClick = onScan,
-            enabled = !isScanning,
-            shape = RoundedCornerShape(14.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = WireWaveTheme.Colors.accentBlue),
-            modifier = Modifier
-                .fillMaxWidth(0.72f)
-                .height(48.dp)
-        ) {
             Text(
-                text = if (isScanning) "Scanning..." else "Scan again",
+                text = step,
                 color = WireWaveTheme.Colors.textPrimary,
-                fontSize = WireWaveTheme.Typography.body,
-                fontWeight = FontWeight.Medium
+                fontSize = 11.sp,
+                fontWeight = FontWeight.SemiBold
             )
         }
+        Text(
+            text = text,
+            color = WireWaveTheme.Colors.textSecondary,
+            fontSize = WireWaveTheme.Typography.badge,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -182,27 +265,38 @@ private fun NearbyComputersView(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(
-            text = "Nearby computers",
-            color = WireWaveTheme.Colors.textPrimary,
-            fontSize = 26.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = if (isScanning) "Scanning..." else "Scan",
-            color = WireWaveTheme.Colors.accentBlue,
-            fontSize = WireWaveTheme.Typography.body,
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Nearby computers",
+                color = WireWaveTheme.Colors.textPrimary,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "${hosts.size} ${if (hosts.size == 1) "computer" else "computers"} found",
+                color = WireWaveTheme.Colors.textSecondary,
+                fontSize = WireWaveTheme.Typography.badge
+            )
+        }
+        Box(
             modifier = Modifier
+                .defaultMinSize(minHeight = 44.dp)
+                .clip(RoundedCornerShape(WireWaveTheme.Metrics.radiusPill))
+                .background(WireWaveTheme.Colors.bgCard)
+                .border(1.dp, WireWaveTheme.Colors.borderSubtle, RoundedCornerShape(WireWaveTheme.Metrics.radiusPill))
                 .clickable(enabled = !isScanning, role = Role.Button, onClick = onScan)
-                .padding(6.dp)
-        )
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = if (isScanning) "Scanning..." else "Scan",
+                color = if (isScanning) WireWaveTheme.Colors.textSecondary else WireWaveTheme.Colors.accentBlue,
+                fontSize = WireWaveTheme.Typography.badge,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
     }
-    Spacer(modifier = Modifier.height(4.dp))
-    Text(
-        text = "${hosts.size} ${if (hosts.size == 1) "computer" else "computers"} found",
-        color = WireWaveTheme.Colors.textSecondary,
-        fontSize = WireWaveTheme.Typography.badge
-    )
     Spacer(modifier = Modifier.height(16.dp))
 
     val shape = RoundedCornerShape(WireWaveTheme.Metrics.radiusCard)
@@ -236,55 +330,56 @@ private fun HostRow(
             .fillMaxWidth()
             .padding(horizontal = 14.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                modifier = Modifier
-                    .size(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(WireWaveTheme.Colors.bgCardHover),
-                contentAlignment = Alignment.Center
-            ) {
+        Box(
+            modifier = Modifier
+                .size(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(WireWaveTheme.Colors.bgCardHover)
+                .border(1.dp, WireWaveTheme.Colors.borderSubtle, RoundedCornerShape(12.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.DesktopWindows,
+                contentDescription = null,
+                tint = WireWaveTheme.Colors.textPrimary,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(
+                text = host.pcName,
+                color = WireWaveTheme.Colors.textPrimary,
+                fontSize = WireWaveTheme.Typography.cardTitle,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(7.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (host.busy) WireWaveTheme.Colors.statusErrFg
+                            else WireWaveTheme.Colors.statusOkFg
+                        )
+                )
+                Spacer(modifier = Modifier.width(6.dp))
                 Icon(
-                    imageVector = Icons.Rounded.DesktopWindows,
+                    imageVector = icon,
                     contentDescription = null,
-                    tint = WireWaveTheme.Colors.textPrimary,
-                    modifier = Modifier.size(20.dp)
+                    tint = WireWaveTheme.Colors.textSecondary,
+                    modifier = Modifier.size(13.dp)
                 )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
-                    text = host.pcName,
-                    color = WireWaveTheme.Colors.textPrimary,
-                    fontSize = WireWaveTheme.Typography.cardTitle,
-                    fontWeight = FontWeight.Medium
+                    text = if (host.busy) "Busy" else "${host.transport.label} · Ready",
+                    color = WireWaveTheme.Colors.textSecondary,
+                    fontSize = WireWaveTheme.Typography.badge
                 )
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(7.dp)
-                            .clip(CircleShape)
-                            .background(
-                                if (host.busy) WireWaveTheme.Colors.statusErrFg
-                                else WireWaveTheme.Colors.statusOkFg
-                            )
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = WireWaveTheme.Colors.textSecondary,
-                        modifier = Modifier.size(13.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (host.busy) "Busy" else "Ready on ${host.transport.label}",
-                        color = WireWaveTheme.Colors.textSecondary,
-                        fontSize = WireWaveTheme.Typography.badge
-                    )
-                }
             }
         }
 
@@ -292,13 +387,19 @@ private fun HostRow(
             onClick = onConnect,
             enabled = !host.busy,
             shape = RoundedCornerShape(WireWaveTheme.Metrics.radiusPill),
-            colors = ButtonDefaults.buttonColors(containerColor = WireWaveTheme.Colors.accentBlue)
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 10.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = WireWaveTheme.Colors.textPrimary,
+                contentColor = WireWaveTheme.Colors.bgCanvas,
+                disabledContainerColor = WireWaveTheme.Colors.bgCardHover,
+                disabledContentColor = WireWaveTheme.Colors.textSecondary
+            ),
+            modifier = Modifier.defaultMinSize(minHeight = 44.dp)
         ) {
             Text(
-                text = "Connect",
-                color = WireWaveTheme.Colors.textPrimary,
+                text = if (host.busy) "Busy" else "Connect",
                 fontSize = WireWaveTheme.Typography.badge,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.SemiBold
             )
         }
     }

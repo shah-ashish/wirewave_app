@@ -22,7 +22,9 @@ internal fun AppSettingsRoute(
     val context = LocalContext.current
     val connectionPrefs by container.trustStore.connectionPrefs.collectAsState()
     val mousePrefs by container.trustStore.mousePrefs.collectAsState()
-    val connectedPc = (sessionState as? ClientSessionState.Connected)?.pcName
+    val connectedSession = sessionState as? ClientSessionState.Connected
+    val connectedPc = connectedSession?.pcName
+    val connectedDesktopId = connectedSession?.desktopId
     var trustedList by remember { mutableStateOf(container.trustStore.listTrustedDesktops()) }
     SettingsScreen(
         aboutSnapshot = container.aboutSnapshotFor(connectedPc),
@@ -30,6 +32,7 @@ internal fun AppSettingsRoute(
         connectionPrefs = connectionPrefs,
         mousePrefs = mousePrefs,
         trustedDesktops = trustedList,
+        connectedDesktopId = connectedDesktopId,
         onToggleAutoConnect = container.trustStore::setAutoConnect,
         onToggleKeepAlive = { enabled ->
             container.trustStore.setKeepAliveInBackground(enabled)
