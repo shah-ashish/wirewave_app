@@ -9,8 +9,9 @@ use wirewave_core_config::THEME;
 pub fn render_about_section(snapshot: &AboutSnapshot) -> Div {
     let m = THEME.metrics;
 
-    let rows: [(&str, Div); 4] = [
+    let rows: [(&str, Div); 5] = [
         ("App name", value_text(snapshot.app_name, false)),
+        ("Version", value_text(snapshot.version_name, true)),
         ("Device name", value_text(snapshot.device_name.clone(), false)),
         (
             "Connected phone",

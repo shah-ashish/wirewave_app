@@ -6,6 +6,7 @@ use wirewave_core_identity::DeviceIdentity;
 #[derive(Debug, Clone)]
 pub struct AboutSnapshot {
     pub app_name: &'static str,
+    pub version_name: &'static str,
     pub device_name: String,
     pub connected_phone: String,
     pub app_id: &'static str,
@@ -27,6 +28,7 @@ pub fn load_about_snapshot(
 
     AboutSnapshot {
         app_name: APP_CONFIG.app_name,
+        version_name: APP_CONFIG.version_name,
         device_name,
         connected_phone: connected_phone.unwrap_or_else(|| "Not connected".to_string()),
         app_id: APP_CONFIG.app_id,

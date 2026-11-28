@@ -52,6 +52,9 @@ impl AssetSource for EmbeddedAssets {
             "assets/brand/icons/window-close.svg" => Some(include_bytes!(
                 "../../../assets/brand/icons/window-close.svg"
             )),
+            "assets/brand/icons/update.svg" => Some(include_bytes!(
+                "../../../assets/brand/icons/update.svg"
+            )),
             _ => None,
         };
         Ok(bytes.map(Cow::Borrowed))
@@ -75,6 +78,7 @@ impl AssetSource for EmbeddedAssets {
             "assets/brand/icons/window-minimize.svg".into(),
             "assets/brand/icons/window-maximize.svg".into(),
             "assets/brand/icons/window-close.svg".into(),
+            "assets/brand/icons/update.svg".into(),
         ])
     }
 }

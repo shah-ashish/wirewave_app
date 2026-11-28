@@ -1,5 +1,6 @@
 use gpui::{Context, Div, Render, div, prelude::*, px, rgba, svg};
 use wirewave_core_config::{APP_CONFIG, THEME};
+use wirewave_feature_settings::update::UpdatePhase;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NavTab {
@@ -7,14 +8,17 @@ pub enum NavTab {
     Settings,
 }
 
-pub trait HasNavigation: 'static {
+pub trait HasNavigation: 'static + Sized {
     fn select_tab(&mut self, tab: NavTab);
+    fn toggle_update_panel(&mut self, cx: &mut Context<Self>);
 }
 
-/// Left navigation rail with Home + Settings buttons and bottom connection status dot.
+/// Left navigation rail with Home + Settings buttons, bottom Update icon, and connection dot.
 pub fn render_sidebar<V: Render + HasNavigation>(
     active_tab: NavTab,
     is_connected: bool,
+    update_phase: &UpdatePhase,
+    update_open: bool,
     cx: &mut Context<V>,
 ) -> Div {
     let c = THEME.colors;
@@ -52,12 +56,7 @@ pub fn render_sidebar<V: Render + HasNavigation>(
         .flex()
         .items_center()
         .justify_center()
-        .child(
-            svg()
-                .path(a.icon_monitor_svg)
-                .size(px(20.0))
-                .text_color(rgba(c.text_secondary)),
-        )
+        .child(svg().path(a.icon_monitor_svg).size(px(20.0)).text_color(rgba(c.text_secondary)))
         .child(
             div()
                 .absolute()
@@ -70,6 +69,14 @@ pub fn render_sidebar<V: Render + HasNavigation>(
                 .border_color(rgba(c.bg_canvas)),
         );
 
+    let bottom_rail = div()
+        .flex()
+        .flex_col()
+        .items_center()
+        .gap(px(12.0))
+        .child(update_button(update_phase, update_open, cx))
+        .child(status_indicator);
+
     div()
         .flex()
         .flex_col()
@@ -80,7 +87,69 @@ pub fn render_sidebar<V: Render + HasNavigation>(
         .py(px(16.0))
         .bg(rgba(c.bg_canvas))
         .child(nav_items)
-        .child(status_indicator)
+        .child(bottom_rail)
+}
+
+fn update_button<V: Render + HasNavigation>(
+    phase: &UpdatePhase,
+    is_open: bool,
+    cx: &mut Context<V>,
+) -> impl IntoElement {
+    let c = THEME.colors;
+    let m = THEME.metrics;
+
+    let (bg, icon_color, badge_color) = match (is_open, phase) {
+        (true, _) => (c.bg_nav_active, c.accent_blue, None),
+        (false, UpdatePhase::Checking | UpdatePhase::Downloading { .. }) => {
+            (c.bg_canvas, c.accent_blue, Some(c.accent_blue))
+        }
+        (false, UpdatePhase::Available(_)) => (c.bg_canvas, c.text_primary, Some(c.accent_blue)),
+        (false, UpdatePhase::ReadyToInstall { .. }) => {
+            (c.bg_canvas, c.text_primary, Some(c.status_ok_fg))
+        }
+        (false, UpdatePhase::Failed { .. }) => {
+            (c.bg_canvas, c.text_secondary, Some(c.status_err_fg))
+        }
+        (false, UpdatePhase::Idle | UpdatePhase::UpToDate) => (c.bg_canvas, c.text_secondary, None),
+    };
+
+    let mut btn = div()
+        .id("nav-update")
+        .relative()
+        .cursor_pointer()
+        .size(px(42.0))
+        .rounded(px(m.radius_nav))
+        .bg(rgba(bg))
+        .hover(|s| s.bg(rgba(c.bg_card_hover)))
+        .flex()
+        .items_center()
+        .justify_center()
+        .on_click(cx.listener(|view, _ev, _win, cx| {
+            view.toggle_update_panel(cx);
+            cx.notify();
+        }))
+        .child(
+            svg()
+                .path("assets/brand/icons/update.svg")
+                .size(px(20.0))
+                .text_color(rgba(icon_color)),
+        );
+
+    if let Some(dot_color) = badge_color {
+        btn = btn.child(
+            div()
+                .absolute()
+                .top(px(7.0))
+                .right(px(7.0))
+                .size(px(7.0))
+                .rounded(px(m.radius_pill))
+                .bg(rgba(dot_color))
+                .border_1()
+                .border_color(rgba(c.bg_canvas)),
+        );
+    }
+
+    btn
 }
 
 fn nav_button<V: Render + HasNavigation>(
@@ -111,10 +180,5 @@ fn nav_button<V: Render + HasNavigation>(
             view.select_tab(target);
             cx.notify();
         }))
-        .child(
-            svg()
-                .path(icon_path)
-                .size(px(20.0))
-                .text_color(rgba(icon_color)),
-        )
+        .child(svg().path(icon_path).size(px(20.0)).text_color(rgba(icon_color)))
 }

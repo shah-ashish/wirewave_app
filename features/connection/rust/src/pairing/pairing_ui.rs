@@ -7,7 +7,7 @@ pub trait CanCancelPairing: 'static {
     fn on_cancel_pairing(&mut self);
 }
 
-/// Renders the Desktop OTP pairing modal matching Desktop_Home_-_Pairing_request.png.
+/// Renders the Desktop OTP pairing modal over a dimmed scrim.
 pub fn render_pairing_modal<V: Render + CanCancelPairing>(
     state: &PairingModalState,
     cx: &mut Context<V>,
@@ -20,8 +20,36 @@ pub fn render_pairing_modal<V: Render + CanCancelPairing>(
         TransportKind::Bluetooth => APP_CONFIG.assets.icon_bluetooth_svg,
     };
 
+    let otp_box = div()
+        .w_full()
+        .py(px(16.0))
+        .px(px(20.0))
+        .rounded(px(m.radius_nav + 2.0))
+        .bg(rgba(c.bg_sidebar))
+        .border_1()
+        .border_color(rgba(c.border_subtle))
+        .flex()
+        .flex_col()
+        .items_center()
+        .gap(px(6.0))
+        .child(
+            div()
+                .font_family("Consolas")
+                .text_size(px(38.0))
+                .font_weight(FontWeight::BOLD)
+                .text_color(rgba(c.text_primary))
+                .child(state.formatted_otp.clone()),
+        )
+        .child(
+            div()
+                .text_size(px(THEME.typography.font_badge))
+                .text_color(rgba(c.text_secondary))
+                .child("Enter this code on your phone."),
+        );
+
     let dialog = div()
-        .w(px(380.0))
+        .w_full()
+        .max_w(px(400.0))
         .bg(rgba(c.bg_card))
         .border_1()
         .border_color(rgba(c.border_subtle))
@@ -33,10 +61,10 @@ pub fn render_pairing_modal<V: Render + CanCancelPairing>(
         .gap(px(14.0))
         .child(
             div()
-                .text_size(px(11.0))
-                .font_weight(FontWeight::MEDIUM)
+                .text_size(px(THEME.typography.font_section))
+                .font_weight(FontWeight::SEMIBOLD)
                 .text_color(rgba(c.text_section))
-                .child("Pairing request"),
+                .child("PAIRING REQUEST"),
         )
         .child(
             div()
@@ -54,7 +82,9 @@ pub fn render_pairing_modal<V: Render + CanCancelPairing>(
                 .px(px(12.0))
                 .py(px(5.0))
                 .rounded(px(m.radius_pill))
-                .bg(rgba(c.bg_card_hover))
+                .bg(rgba(c.bg_sidebar))
+                .border_1()
+                .border_color(rgba(c.border_subtle))
                 .child(
                     svg()
                         .path(transport_icon)
@@ -68,21 +98,7 @@ pub fn render_pairing_modal<V: Render + CanCancelPairing>(
                         .child(format!("via {}", state.transport.label())),
                 ),
         )
-        .child(
-            div()
-                .py(px(10.0))
-                .font_family("Consolas")
-                .text_size(px(38.0))
-                .font_weight(FontWeight::BOLD)
-                .text_color(rgba(c.text_primary))
-                .child(state.formatted_otp.clone()),
-        )
-        .child(
-            div()
-                .text_size(px(THEME.typography.font_badge))
-                .text_color(rgba(c.text_secondary))
-                .child("Enter this code on your phone."),
-        )
+        .child(otp_box)
         .child(
             div()
                 .w_full()
@@ -90,11 +106,11 @@ pub fn render_pairing_modal<V: Render + CanCancelPairing>(
                 .flex_row()
                 .items_center()
                 .gap(px(10.0))
-                .pt(px(4.0))
+                .pt(px(2.0))
                 .child(
                     div()
                         .flex_1()
-                        .h(px(4.0))
+                        .h(px(5.0))
                         .rounded(px(m.radius_pill))
                         .bg(rgba(c.border_subtle))
                         .overflow_hidden()
@@ -108,6 +124,7 @@ pub fn render_pairing_modal<V: Render + CanCancelPairing>(
                 )
                 .child(
                     div()
+                        .font_family("Consolas")
                         .text_size(px(THEME.typography.font_badge))
                         .text_color(rgba(c.text_secondary))
                         .child(format!("{}s", state.remaining_secs)),
@@ -117,10 +134,12 @@ pub fn render_pairing_modal<V: Render + CanCancelPairing>(
             div()
                 .id("cancel-pairing-btn")
                 .w_full()
-                .mt(px(6.0))
+                .mt(px(4.0))
                 .h(px(42.0))
                 .rounded(px(10.0))
                 .bg(rgba(c.bg_card_hover))
+                .border_1()
+                .border_color(rgba(c.border_subtle))
                 .hover(|s| s.bg(rgba(c.border_subtle)))
                 .cursor_pointer()
                 .flex()
@@ -139,6 +158,7 @@ pub fn render_pairing_modal<V: Render + CanCancelPairing>(
     div()
         .absolute()
         .inset_0()
+        .p(px(m.spacing_md))
         .bg(rgba(c.scrim))
         .flex()
         .items_center()

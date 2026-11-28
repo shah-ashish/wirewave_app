@@ -5,10 +5,7 @@ use crate::{
         connection_logic::ConnectionSettingsState,
         connection_ui::{HasConnectionSettingsActions, render_connection_section},
     },
-    devices::{
-        devices_logic::DeviceTab,
-        devices_ui::{HasDeviceListActions, render_devices_section},
-    },
+    devices::devices_ui::{HasDeviceListActions, render_devices_section},
     drivers::{
         drivers_logic::DriversState,
         drivers_ui::{HasDriverActions, render_drivers_section},
@@ -17,7 +14,6 @@ use crate::{
         services_logic::ServicesSettingsState,
         services_ui::{HasServicesSettingsActions, render_services_section},
     },
-    update::{UpdateController, render_update_section, update_logic::HasUpdateController},
 };
 use gpui::{Context, FontWeight, Render, Window, div, prelude::*, px, rgba};
 use wirewave_core_compatibility::CompatibilityReport;
@@ -26,21 +22,12 @@ use wirewave_core_identity::DeviceIdentity;
 use wirewave_core_session::{SessionState, SharedSession};
 use wirewave_core_transport::TransportPriority;
 
-/// Composes Update, Connection, Devices, and About sections plus the compatibility blocker.
+/// Composes unified single-page Settings (Connection, Services, Drivers, Devices, About).
 pub struct SettingsScreen {
     identity: DeviceIdentity,
     compatibility: CompatibilityReport,
     session: SharedSession,
-    updater: UpdateController,
     priority_dropdown_open: bool,
-    device_tab: DeviceTab,
-    settings_tab: SettingsTab,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum SettingsTab {
-    General,
-    Drivers,
 }
 
 impl SettingsScreen {
@@ -53,17 +40,8 @@ impl SettingsScreen {
             identity: identity.clone(),
             compatibility,
             session,
-            updater: UpdateController::default(),
             priority_dropdown_open: false,
-            device_tab: DeviceTab::Connected,
-            settings_tab: SettingsTab::General,
         }
-    }
-}
-
-impl HasUpdateController for SettingsScreen {
-    fn updater_mut(&mut self) -> &mut UpdateController {
-        &mut self.updater
     }
 }
 
@@ -101,10 +79,6 @@ impl HasServicesSettingsActions for SettingsScreen {
 }
 
 impl HasDeviceListActions for SettingsScreen {
-    fn select_device_tab(&mut self, tab: DeviceTab) {
-        self.device_tab = tab;
-    }
-
     fn disconnect_active_device(&mut self) {
         self.session.disconnect_active();
     }
@@ -134,6 +108,7 @@ impl HasDriverActions for SettingsScreen {
 
 impl Render for SettingsScreen {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let c = THEME.colors;
         let m = THEME.metrics;
         let snapshot = self.session.snapshot();
 
@@ -147,94 +122,46 @@ impl Render for SettingsScreen {
             ConnectionSettingsState::from_prefs(snapshot.preferences, self.priority_dropdown_open);
         let services_state = ServicesSettingsState::from_prefs(snapshot.preferences);
 
-        let general_active = self.settings_tab == SettingsTab::General;
-        let drivers_active = self.settings_tab == SettingsTab::Drivers;
-        let colors = THEME.colors;
-        let tabs = div()
+        let page_header = div()
             .flex()
-            .flex_row()
-            .gap(px(8.0))
+            .flex_col()
+            .gap(px(4.0))
             .child(
                 div()
-                    .id("settings-general-tab")
-                    .cursor_pointer()
-                    .px(px(14.0))
-                    .py(px(8.0))
-                    .rounded(px(8.0))
-                    .bg(rgba(if general_active {
-                        colors.bg_nav_active
-                    } else {
-                        colors.bg_card
-                    }))
-                    .text_color(rgba(if general_active {
-                        colors.accent_blue
-                    } else {
-                        colors.text_secondary
-                    }))
-                    .font_weight(FontWeight::MEDIUM)
-                    .on_click(cx.listener(|view, _, _, cx| {
-                        view.settings_tab = SettingsTab::General;
-                        cx.notify();
-                    }))
-                    .child("General"),
+                    .text_size(px(26.0))
+                    .font_weight(FontWeight::BOLD)
+                    .text_color(rgba(c.text_primary))
+                    .child("Settings"),
             )
             .child(
                 div()
-                    .id("settings-drivers-tab")
-                    .cursor_pointer()
-                    .px(px(14.0))
-                    .py(px(8.0))
-                    .rounded(px(8.0))
-                    .bg(rgba(if drivers_active {
-                        colors.bg_nav_active
-                    } else {
-                        colors.bg_card
-                    }))
-                    .text_color(rgba(if drivers_active {
-                        colors.accent_blue
-                    } else {
-                        colors.text_secondary
-                    }))
-                    .font_weight(FontWeight::MEDIUM)
-                    .on_click(cx.listener(|view, _, _, cx| {
-                        view.settings_tab = SettingsTab::Drivers;
-                        cx.notify();
-                    }))
-                    .child("Drivers"),
+                    .text_size(px(THEME.typography.font_body))
+                    .text_color(rgba(c.text_secondary))
+                    .child("Connection, permissions, drivers, and paired devices"),
             );
-
-        let tab_content = match self.settings_tab {
-            SettingsTab::General => div()
-                .flex()
-                .flex_col()
-                .gap(px(m.spacing_lg))
-                .child(render_update_section(&self.updater, cx))
-                .child(render_connection_section(&conn_state, cx))
-                .child(render_services_section(&services_state, cx))
-                .child(render_devices_section(&snapshot, self.device_tab, cx))
-                .child(render_about_section(&about)),
-            SettingsTab::Drivers => div()
-                .flex()
-                .flex_col()
-                .gap(px(m.spacing_lg))
-                .child(render_drivers_section(&DriversState::detect(), cx)),
-        };
 
         let content = div()
             .w_full()
-            .max_w(px(m.content_max_width + 120.0))
+            .max_w(px(m.content_max_width + 260.0))
             .flex()
             .flex_col()
             .gap(px(m.spacing_lg))
-            .child(tabs)
-            .child(tab_content);
+            .child(page_header)
+            .child(render_connection_section(&conn_state, cx))
+            .child(render_services_section(&services_state, cx))
+            .child(render_drivers_section(&DriversState::detect(), cx))
+            .child(render_devices_section(&snapshot, cx))
+            .child(render_about_section(&about));
 
         let mut root = div()
             .id("settings-scroll-root")
             .relative()
             .size_full()
             .overflow_y_scroll()
-            .p(px(m.spacing_lg + 8.0))
+            .p(px(m.spacing_lg))
+            .flex()
+            .flex_col()
+            .items_center()
             .child(content);
 
         if let Some(popup) = render_incompatibility_popup(&about.compatibility) {
