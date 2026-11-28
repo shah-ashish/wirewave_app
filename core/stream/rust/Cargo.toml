@@ -12,5 +12,6 @@ sha2 = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
+directories = { workspace = true }
 wirewave-core-config = { workspace = true }
 zeroize = { workspace = true }

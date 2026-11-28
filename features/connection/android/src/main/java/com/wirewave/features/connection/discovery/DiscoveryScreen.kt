@@ -29,6 +29,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -45,6 +46,7 @@ import com.wirewave.core.config.AppConfig
 import com.wirewave.core.config.WireWaveTheme
 import com.wirewave.core.discovery.DiscoveredHost
 import com.wirewave.core.transport.TransportKind
+import com.wirewave.core.ui.CircleIconButton
 
 @Composable
 fun DiscoveryScreen(
@@ -54,7 +56,8 @@ fun DiscoveryScreen(
     onConnect: (DiscoveredHost) -> Unit,
     onOpenSettings: () -> Unit,
     brandMark: @Composable () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    connectingMessage: String? = null
 ) {
     Column(
         modifier = modifier
@@ -70,27 +73,20 @@ fun DiscoveryScreen(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             brandMark()
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(WireWaveTheme.Colors.bgCard)
-                    .border(1.dp, WireWaveTheme.Colors.borderSubtle, CircleShape)
-                    .clickable(role = Role.Button, onClick = onOpenSettings),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Settings,
-                    contentDescription = "Settings",
-                    tint = WireWaveTheme.Colors.textPrimary,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
+            CircleIconButton(
+                icon = Icons.Rounded.Settings,
+                contentDescription = "Settings",
+                onClick = onOpenSettings,
+                iconTint = WireWaveTheme.Colors.textPrimary
+            )
         }
 
-        if (errorMessage != null) {
+        if (connectingMessage != null) {
             Spacer(modifier = Modifier.height(12.dp))
-            DiscoveryErrorBanner(message = errorMessage)
+            DiscoveryStatusBanner(message = connectingMessage, isConnecting = true)
+        } else if (errorMessage != null) {
+            Spacer(modifier = Modifier.height(12.dp))
+            DiscoveryStatusBanner(message = errorMessage, isConnecting = false)
         }
 
         when {
@@ -110,27 +106,37 @@ fun DiscoveryScreen(
 }
 
 @Composable
-private fun DiscoveryErrorBanner(message: String) {
+private fun DiscoveryStatusBanner(message: String, isConnecting: Boolean) {
     val shape = RoundedCornerShape(12.dp)
+    val foreground = if (isConnecting) WireWaveTheme.Colors.statusOkFg else WireWaveTheme.Colors.statusErrFg
+    val background = if (isConnecting) WireWaveTheme.Colors.statusOkBg else WireWaveTheme.Colors.statusErrBg
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(WireWaveTheme.Colors.statusErrBg)
-            .border(1.dp, WireWaveTheme.Colors.statusErrFg.copy(alpha = 0.45f), shape)
+            .background(background)
+            .border(1.dp, foreground.copy(alpha = 0.45f), shape)
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Icon(
-            imageVector = Icons.Rounded.ErrorOutline,
-            contentDescription = null,
-            tint = WireWaveTheme.Colors.statusErrFg,
-            modifier = Modifier.size(18.dp)
-        )
+        if (isConnecting) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(18.dp),
+                color = foreground,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Icon(
+                imageVector = Icons.Rounded.ErrorOutline,
+                contentDescription = null,
+                tint = foreground,
+                modifier = Modifier.size(18.dp)
+            )
+        }
         Text(
             text = message,
-            color = WireWaveTheme.Colors.statusErrFg,
+            color = foreground,
             fontSize = WireWaveTheme.Typography.badge,
             fontWeight = FontWeight.Medium
         )

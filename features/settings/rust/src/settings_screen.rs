@@ -28,6 +28,7 @@ pub struct SettingsScreen {
     compatibility: CompatibilityReport,
     session: SharedSession,
     priority_dropdown_open: bool,
+    drivers: DriversState,
 }
 
 impl SettingsScreen {
@@ -41,6 +42,7 @@ impl SettingsScreen {
             compatibility,
             session,
             priority_dropdown_open: false,
+            drivers: DriversState::detect(),
         }
     }
 }
@@ -98,6 +100,7 @@ impl HasDeviceListActions for SettingsScreen {
 
 impl HasDriverActions for SettingsScreen {
     fn refresh_drivers(&mut self) {
+        self.drivers = DriversState::detect();
         self.session.refresh_mic_service_state();
     }
 
@@ -149,7 +152,7 @@ impl Render for SettingsScreen {
             .child(page_header)
             .child(render_connection_section(&conn_state, cx))
             .child(render_services_section(&services_state, cx))
-            .child(render_drivers_section(&DriversState::detect(), cx))
+            .child(render_drivers_section(&self.drivers, cx))
             .child(render_devices_section(&snapshot, cx))
             .child(render_about_section(&about));
 

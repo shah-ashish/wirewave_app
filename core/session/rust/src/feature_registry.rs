@@ -1,16 +1,17 @@
+use crate::{feature_host::FeatureHost, settings_store::ConnectionPreferences};
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock},
 };
 use wirewave_core_stream::ChannelId;
 use wirewave_core_transport::ControlMessage;
-use crate::{feature_host::FeatureHost, settings_store::ConnectionPreferences};
 
 /// Thread-safe registry holding all active feature hosts.
 ///
 /// Encapsulates feature lifecycle and state query dispatching across all registered features.
 pub struct FeatureRegistry {
     features: RwLock<HashMap<ChannelId, Arc<dyn FeatureHost>>>,
+    health: RwLock<HashMap<ChannelId, Arc<wirewave_core_stream::health::StreamHealth>>>,
 }
 
 pub type SharedFeatureRegistry = Arc<FeatureRegistry>;
@@ -19,39 +20,87 @@ impl FeatureRegistry {
     pub fn new() -> Self {
         Self {
             features: RwLock::new(HashMap::new()),
+            health: RwLock::new(HashMap::new()),
         }
     }
 
     /// Registers a feature host. Overwrites any previous registration for the same channel.
     pub fn register(&self, host: Arc<dyn FeatureHost>) {
-        let mut guard = self.features.write().expect("feature registry lock poisoned");
+        let mut guard = self
+            .features
+            .write()
+            .expect("feature registry lock poisoned");
         guard.insert(host.channel_id(), host);
+    }
+
+    pub fn monitor(&self, kind: ChannelId, channel: &Arc<wirewave_core_stream::UdpDataChannel>) {
+        self.clear_health(kind);
+        self.health
+            .write()
+            .unwrap()
+            .insert(kind, channel.monitor(kind));
+    }
+
+    pub fn latency(&self, kind: ChannelId) -> Option<wirewave_core_stream::health::LiveLatency> {
+        self.health
+            .read()
+            .unwrap()
+            .get(&kind)
+            .map(|health| health.snapshot().0)
+    }
+
+    pub fn clear_health(&self, kind: ChannelId) {
+        if let Some(health) = self.health.write().unwrap().remove(&kind) {
+            health.stop();
+        }
+    }
+
+    pub fn connection_lost(&self) {
+        for health in self.health.read().unwrap().values() {
+            health.disconnected();
+        }
     }
 
     /// Retrieves a registered feature host by its channel ID.
     pub fn get(&self, channel: ChannelId) -> Option<Arc<dyn FeatureHost>> {
-        let guard = self.features.read().expect("feature registry lock poisoned");
+        let guard = self
+            .features
+            .read()
+            .expect("feature registry lock poisoned");
         guard.get(&channel).cloned()
     }
 
     /// Lists all registered feature hosts.
     pub fn list_all(&self) -> Vec<Arc<dyn FeatureHost>> {
-        let guard = self.features.read().expect("feature registry lock poisoned");
+        let guard = self
+            .features
+            .read()
+            .expect("feature registry lock poisoned");
         guard.values().cloned().collect()
     }
 
     /// Stops all running feature streams cleanly.
     pub fn stop_all(&self) {
-        let guard = self.features.read().expect("feature registry lock poisoned");
+        let guard = self
+            .features
+            .read()
+            .expect("feature registry lock poisoned");
         for host in guard.values() {
+            self.clear_health(host.channel_id());
             host.stop_stream();
         }
     }
 
     /// Generates initial control messages for all registered features to announce their initial state.
     pub fn initial_states(&self, prefs: &ConnectionPreferences) -> Vec<ControlMessage> {
-        let guard = self.features.read().expect("feature registry lock poisoned");
-        guard.values().map(|host| host.initial_state(prefs)).collect()
+        let guard = self
+            .features
+            .read()
+            .expect("feature registry lock poisoned");
+        guard
+            .values()
+            .map(|host| host.initial_state(prefs))
+            .collect()
     }
 }
 

@@ -10,6 +10,7 @@ path = "src/main.rs"
 
 [dependencies]
 gpui = { workspace = true }
+wirewave-core-stream = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 wirewave-core-compatibility = { workspace = true }

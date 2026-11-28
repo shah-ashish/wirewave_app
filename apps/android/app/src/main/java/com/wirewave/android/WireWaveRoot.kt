@@ -127,7 +127,8 @@ internal fun WireWaveRoot(
         )
         is ClientSessionState.Connecting -> DiscoveryScreen(
             uiState = discoveryState.copy(isScanning = true),
-            errorMessage = "Connecting to ${state.host.pcName}...",
+            errorMessage = null,
+            connectingMessage = "Connecting to ${state.host.pcName}...",
             onScan = {},
             onConnect = {},
             onOpenSettings = { showSettings = true },

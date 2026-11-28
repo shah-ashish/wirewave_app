@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.DesktopWindows
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -89,22 +88,6 @@ internal fun ConnectionSummary(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(WireWaveTheme.Colors.bgCardHover)
-                .border(1.dp, WireWaveTheme.Colors.borderSubtle, RoundedCornerShape(12.dp)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.DesktopWindows,
-                contentDescription = null,
-                tint = WireWaveTheme.Colors.textPrimary,
-                modifier = Modifier.size(22.dp)
-            )
-        }
-
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = pcName,

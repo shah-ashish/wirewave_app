@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -23,11 +24,12 @@ fun CircleIconButton(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    active: Boolean = false
+    active: Boolean = false,
+    iconTint: Color? = null
 ) {
     val bg = if (active) WireWaveTheme.Colors.accentBlue else WireWaveTheme.Colors.bgCard
     val border = if (active) WireWaveTheme.Colors.accentBlue else WireWaveTheme.Colors.borderSubtle
-    val tint = if (active) WireWaveTheme.Colors.textPrimary else WireWaveTheme.Colors.textSecondary
+    val tint = iconTint ?: if (active) WireWaveTheme.Colors.textPrimary else WireWaveTheme.Colors.textSecondary
 
     Box(
         modifier = modifier

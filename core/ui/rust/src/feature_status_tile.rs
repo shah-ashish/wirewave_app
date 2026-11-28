@@ -5,6 +5,7 @@ use wirewave_core_config::THEME;
 pub struct FeatureStatusTile<'a> {
     pub id: &'static str,
     pub title: &'static str,
+    pub latency: Option<&'a str>,
     pub icon_path: &'static str,
     pub active: bool,
     pub subtitle: &'a str,
@@ -12,7 +13,7 @@ pub struct FeatureStatusTile<'a> {
 }
 
 impl FeatureStatusTile<'_> {
-    pub fn render(self) -> impl IntoElement {
+    pub fn render(self) -> gpui::Stateful<gpui::Div> {
         let colors = THEME.colors;
         let metrics = THEME.metrics;
 
@@ -74,10 +75,24 @@ impl FeatureStatusTile<'_> {
             .gap(px(4.0))
             .child(
                 div()
-                    .text_size(px(THEME.typography.font_card_title))
-                    .font_weight(FontWeight::SEMIBOLD)
-                    .text_color(rgba(colors.text_primary))
-                    .child(self.title),
+                    .flex()
+                    .flex_row()
+                    .items_center()
+                    .justify_between()
+                    .gap(px(8.0))
+                    .child(
+                        div()
+                            .text_size(px(THEME.typography.font_card_title))
+                            .font_weight(FontWeight::SEMIBOLD)
+                            .text_color(rgba(colors.text_primary))
+                            .child(self.title),
+                    )
+                    .child(
+                        div()
+                            .text_size(px(THEME.typography.font_badge))
+                            .text_color(rgba(colors.text_secondary))
+                            .child(self.latency.unwrap_or("—").to_owned()),
+                    ),
             )
             .child(
                 div()

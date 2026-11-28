@@ -100,10 +100,12 @@ impl ActiveControlChannel {
         let mut seq: u64 = 0;
         let mut last_seen = Instant::now();
         let mut speaker_hello_task: Option<tokio::task::JoinHandle<()>> = None;
+        let mut graceful_disconnect = false;
 
         loop {
             tokio::select! {
                 _ = cancel_rx.changed() => {
+                    graceful_disconnect = true;
                     let msg = ControlMessage::Disconnect { reason: "server_disconnect".into() };
                     let _ = send_encrypted(&mut stream, &mut cipher, &msg).await;
                     break;
@@ -118,6 +120,7 @@ impl ActiveControlChannel {
                             if let Some(task) = speaker_hello_task.take() {
                                 task.abort();
                             }
+                            self.feature_registry.clear_health(host.channel_id());
                             host.stop_stream();
                         }
                         let state = host.make_state_message(
@@ -139,6 +142,7 @@ impl ActiveControlChannel {
                     }
                     let permission = *mic_policy_rx.borrow();
                     if let Some(host) = self.feature_registry.get(ChannelId::Mic) {
+                        self.feature_registry.clear_health(host.channel_id());
                         host.stop_stream();
                         let driver = host.status_detail();
                         let allowed = permission && driver.is_some();
@@ -167,6 +171,7 @@ impl ActiveControlChannel {
                     let allowed = *mouse_policy_rx.borrow();
                     if let Some(host) = self.feature_registry.get(ChannelId::Mouse) {
                         if !allowed {
+                            self.feature_registry.clear_health(host.channel_id());
                             host.stop_stream();
                         }
                         let detail = match allowed {
@@ -211,6 +216,7 @@ impl ActiveControlChannel {
                                 task.abort();
                             }
                             if let Some(host) = self.feature_registry.get(ChannelId::Speaker) {
+                                self.feature_registry.clear_health(host.channel_id());
                                 host.stop_stream();
                                 let state = host.make_state_message(
                                     *speaker_policy_rx.borrow(),
@@ -243,12 +249,17 @@ impl ActiveControlChannel {
                                 let udp_key = derive_udp_key(&session_key, stream_id);
                                 match UdpDataChannel::bind(udp_key, stream_id).await {
                                     Ok((channel, endpoint)) => {
+                                        self.feature_registry.monitor(host.channel_id(), &channel);
                                         if let Some(task) = speaker_hello_task.take() {
                                             task.abort();
                                         }
                                         let accept_channel = Arc::clone(&channel);
                                         speaker_hello_task = Some(tokio::spawn(async move {
-                                            let _ = accept_channel.accept_peer_hello().await;
+                                            if accept_channel.accept_peer_hello().await.is_ok() {
+                                                loop {
+                                                    let _ = accept_channel.recv_datagram().await;
+                                                }
+                                            }
                                         }));
                                         let detail = host.start_stream(channel, tokio::runtime::Handle::current()).ok().flatten();
                                         let state = host.make_state_message(
@@ -278,6 +289,7 @@ impl ActiveControlChannel {
                         }
                         ControlMessage::MicCommand { active: false } => {
                             if let Some(host) = self.feature_registry.get(ChannelId::Mic) {
+                                self.feature_registry.clear_health(host.channel_id());
                                 host.stop_stream();
                                 let permission = *mic_policy_rx.borrow();
                                 let driver = host.status_detail();
@@ -318,11 +330,13 @@ impl ActiveControlChannel {
                                     continue;
                                 }
 
+                                self.feature_registry.clear_health(host.channel_id());
                                 host.stop_stream();
                                 let stream_id = OsRng.next_u32();
                                 let udp_key = derive_udp_key(&session_key, stream_id);
                                 match UdpDataChannel::bind(udp_key, stream_id).await {
                                     Ok((channel, endpoint)) => {
+                                        self.feature_registry.monitor(host.channel_id(), &channel);
                                         match host.start_stream(channel, tokio::runtime::Handle::current()) {
                                             Ok(driver_name) => {
                                                 let state = host.make_state_message(
@@ -336,6 +350,7 @@ impl ActiveControlChannel {
                                                 let _ = send_encrypted(&mut stream, &mut cipher, &state).await;
                                             }
                                             Err(error) => {
+                                                self.feature_registry.clear_health(host.channel_id());
                                                 let state = host.make_state_message(
                                                     true,
                                                     false,
@@ -365,6 +380,7 @@ impl ActiveControlChannel {
                         }
                         ControlMessage::MouseCommand { active: false } => {
                             if let Some(host) = self.feature_registry.get(ChannelId::Mouse) {
+                                self.feature_registry.clear_health(host.channel_id());
                                 host.stop_stream();
                                 let allowed = *mouse_policy_rx.borrow();
                                 let detail = match allowed {
@@ -398,11 +414,13 @@ impl ActiveControlChannel {
                                     continue;
                                 }
 
+                                self.feature_registry.clear_health(host.channel_id());
                                 host.stop_stream();
                                 let stream_id = OsRng.next_u32();
                                 let udp_key = derive_udp_key(&session_key, stream_id);
                                 match UdpDataChannel::bind(udp_key, stream_id).await {
                                     Ok((channel, endpoint)) => {
+                                        self.feature_registry.monitor(host.channel_id(), &channel);
                                         let detail = host.start_stream(channel, tokio::runtime::Handle::current()).ok().flatten();
                                         let state = host.make_state_message(
                                             true,
@@ -432,7 +450,10 @@ impl ActiveControlChannel {
                         ControlMessage::KeyInput { text, key_code } => {
                             crate::key_injector::inject_key_input(text.as_deref(), key_code.as_deref());
                         }
-                        ControlMessage::Disconnect { .. } => break,
+                        ControlMessage::Disconnect { .. } => {
+                            graceful_disconnect = true;
+                            break;
+                        },
                         _ => {}
                     }
                 }
@@ -441,6 +462,9 @@ impl ActiveControlChannel {
 
         if let Some(task) = speaker_hello_task.take() {
             task.abort();
+        }
+        if !graceful_disconnect {
+            self.feature_registry.connection_lost();
         }
         self.feature_registry.stop_all();
     }
